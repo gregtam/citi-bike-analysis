@@ -165,16 +165,14 @@ path_freq_sdf <- selectExpr(most_common_path_sdf,
                             "split(station_names, ' - ')[1]") %>%
   select(c('count', 
            alias(column('split(station_names,  - )[0]'), 'station_1'),
-           alias(column('split(station_names,  - )[1]'), 'station_2')
-  ))
+           alias(column('split(station_names,  - )[1]'), 'station_2')))
 
 path_coord_freq_sdf <- join(path_freq_sdf, lut_sdf, column('station_1') == column('start_station_name')) %>%
   select(c('station_1', 
            'station_2',
            'count',
            alias(column('start_station_longitude'), 'lon_1'),
-           alias(column('start_station_latitude'), 'lat_1')
-  )) %>%
+           alias(column('start_station_latitude'), 'lat_1'))) %>%
   join(lut_sdf, column('station_2') == column('start_station_name')) %>%
   select(c('station_1',
            'station_2',
@@ -182,12 +180,19 @@ path_coord_freq_sdf <- join(path_freq_sdf, lut_sdf, column('station_1') == colum
            'lat_1',
            'lon_1',
            alias(column('start_station_longitude'), 'lon_2'),
-           alias(column('start_station_latitude'), 'lat_2')
-  )) %>%
+           alias(column('start_station_latitude'), 'lat_2'))) %>%
   orderBy(column('count') %>% desc())
 
 path_coord_freq_df <- take(path_coord_freq_sdf, 300)
 
+###############################
+# Most Common Path Directions #
+###############################
 
+path_dir_freq_sdf <- july_citi_date_sdf %>%
+  groupBy('start_station_name', 'start_station_latitude', 'start_station_longitude',
+          'end_station_name', 'end_station_latitude', 'end_station_longitude') %>%
+  count() %>%
+  orderBy(column('count') %>% desc())
 
-
+path_dir_freq_df <- take(path_dir_freq_sdf, 300)
