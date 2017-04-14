@@ -8,12 +8,16 @@ if (nchar(Sys.getenv("SPARK_HOME")) < 1) {
   Sys.setenv(SPARK_HOME = "/Users/gregorytam/spark-2.1.0-bin-hadoop2.7")
 }
 library(SparkR, lib.loc = c(file.path(Sys.getenv("SPARK_HOME"), "R", "lib")))
-sc <- sparkR.session(master = 'local[4]', sparkConfig = list(spark.driver.memory='8g', spark.executor.memory='8g'))
+sc <- sparkR.session(master = 'local[4]',
+                     sparkConfig = list(spark.driver.memory='8g',
+                                        spark.executor.memory='8g'))
 # install.spark() needed for first time
 
 # Select only relevant columns
-df_cols <- c('starttime', 'start.station.name', 'start.station.latitude', 'start.station.longitude',
-             'stoptime', 'end.station.name', 'end.station.latitude', 'end.station.longitude', 'usertype', 'birth.year')
+df_cols <- c('starttime', 'start.station.name', 'start.station.latitude',
+             'start.station.longitude', 'stoptime', 'end.station.name',
+             'end.station.latitude', 'end.station.longitude', 'usertype',
+             'birth.year')
 july_citi_sdf <- as.DataFrame(read.csv('citibike/201607-citibike-tripdata.csv')[, df_cols])
 jan_citi_sdf <- as.DataFrame(read.csv('citibike/201601-citibike-tripdata.csv')[, df_cols])
 
@@ -44,8 +48,12 @@ july_citi_date_sdf <- july_citi_sdf %>%
              "split(stop_timeofday, ':')[0] AS stop_hour",
              "split(stop_timeofday, ':')[1] AS stop_minute",
              "split(stop_timeofday, ':')[2] AS stop_second") %>%
-  select(column('start_station_name'), column('start_station_latitude'), column('start_station_longitude'),
-         column('end_station_name'), column('end_station_latitude'), column('end_station_longitude'),
+  select(column('start_station_name'),
+         column('start_station_latitude'),
+         column('start_station_longitude'),
+         column('end_station_name'),
+         column('end_station_latitude'),
+         column('end_station_longitude'),
          cast(column('start_month'), 'integer'),
          cast(column('start_day'), 'integer'),
          cast(column('start_year'), 'integer'),
@@ -60,14 +68,23 @@ july_citi_date_sdf <- july_citi_sdf %>%
          cast(column('stop_second'), 'integer'),
          column('usertype'),
          column('birth_year')) %>%
-  select(column('start_station_name'), column('start_station_latitude'), column('start_station_longitude'),
-         column('end_station_name'), column('end_station_latitude'), column('end_station_longitude'),
-         concat(column('start_year'), lit('-'), column('start_month'), lit('-'), column('start_day'),
-                lit(' '), column('start_hour'), lit(':'), column('start_minute'), lit(':'), column('start_second')) %>%
+  select(column('start_station_name'), column('start_station_latitude'),
+         column('start_station_longitude'), column('end_station_name'),
+         column('end_station_latitude'), column('end_station_longitude'),
+         concat(column('start_year'), lit('-'),
+                column('start_month'), lit('-'),
+                column('start_day'), lit(' '),
+                column('start_hour'), lit(':'),
+                column('start_minute'), lit(':'),
+                column('start_second')) %>%
            alias('start_time') %>%
            cast('timestamp'),
-         concat(column('stop_year'), lit('-'), column('stop_month'), lit('-'), column('stop_day'),
-                lit(' '), column('stop_hour'), lit(':'), column('stop_minute'), lit(':'), column('stop_second')) %>%
+         concat(column('stop_year'), lit('-'),
+                column('stop_month'), lit('-'),
+                column('stop_day'), lit(' '),
+                column('stop_hour'), lit(':'),
+                column('stop_minute'), lit(':'),
+                column('stop_second')) %>%
            alias('stop_time') %>%
            cast('timestamp'),
          column('usertype'),
@@ -76,9 +93,17 @@ july_citi_date_sdf <- july_citi_sdf %>%
 # write.df(july_citi_date_sdf, 'july_citi_date', mode = 'overwrite')
 july_citi_date_sdf = read.df('july_citi_date')
 
-# Create a lookup table from station name to coordinates
-lut_sdf <- union(select(july_citi_date_sdf, 'start_station_name', 'start_station_longitude', 'start_station_latitude') %>% distinct(),
-                 select(july_citi_date_sdf, 'end_station_name', 'end_station_longitude', 'end_station_latitude') %>% distinct()) %>%
+# Create a lookup table from station name to coordinates.
+lut_sdf <- union(select(july_citi_date_sdf,
+                        'start_station_name',
+                        'start_station_longitude',
+                        'start_station_latitude') %>% 
+                   distinct(),
+                 select(july_citi_date_sdf,
+                        'end_station_name',
+                        'end_station_longitude',
+                        'end_station_latitude') %>%
+                   distinct()) %>%
   distinct() %>%
   orderBy(column('start_station_name'))
 
@@ -86,48 +111,83 @@ lut_sdf <- union(select(july_citi_date_sdf, 'start_station_name', 'start_station
 # Group by stations #
 #####################
 
-start_sdf <- groupBy(july_citi_sdf, 'start_station_name', 'start_station_longitude', 'start_station_latitude') %>%
+start_sdf <- groupBy(july_citi_sdf,
+                     'start_station_name',
+                     'start_station_longitude',
+                     'start_station_latitude') %>%
   count() %>%
   orderBy(desc(column('count')))
 
 start_df <- collect(start_sdf)
 
-end_sdf <- groupBy(july_citi_sdf, 'end_station_name', 'end_station_longitude', 'end_station_latitude') %>%
+end_sdf <- groupBy(july_citi_sdf,
+                   'end_station_name',
+                   'end_station_longitude',
+                   'end_station_latitude') %>%
   count() %>%
   orderBy(desc(column('count')))
 
 end_df <- collect(end_sdf)
 
 # Include hourly data
-start_hour_sdf <- july_citi_date_sdf %>%
-  select(column('*'),
-         hour(column('start_time')) %>% alias ('start_hour')) %>%
-  groupBy('start_station_name', 'start_station_longitude', 'start_station_latitude', 'start_hour') %>%
+start_hour_group_df <- july_citi_date_sdf %>%
+  select(hour(column('start_time')) %>% alias('start_hour')) %>%
+  groupBy('start_hour') %>%
   count() %>%
-  orderBy('start_station_name', 'start_hour')
+  orderBy('start_hour') %>%
+  collect()
 
-start_hour_df <- collect(start_hour_sdf)
-
-start_hour_group_df <- start_hour_df %>%
-  group_by(start_hour) %>%
-  summarize(count = sum(count)) %>%
-  data.frame()
-
-
-end_hour_sdf <- july_citi_date_sdf %>%
-  select(column('*'),
-         hour(column('stop_time')) %>% alias ('stop_hour')) %>%
-  groupBy('end_station_name', 'end_station_longitude', 'end_station_latitude', 'stop_hour') %>%
+end_hour_group_df <- july_citi_date_sdf %>%
+  select(hour(column('stop_time')) %>% alias('stop_hour')) %>%
+  groupBy('stop_hour') %>%
   count() %>%
-  orderBy('end_station_name', 'stop_hour')
+  orderBy('stop_hour') %>%
+  collect()
 
-end_hour_df <- collect(end_hour_sdf)
+hist_theme <- theme(plot.title = element_text(size = 26, hjust = 0.5),
+                    axis.title.x = element_text(size = 22),
+                    axis.title.y = element_text(size = 22),
+                    axis.text.x = element_text(size = 12),
+                    axis.text.y = element_text(size = 12),
+                    legend.title = element_blank(),
+                    legend.text = element_text(size = 12))
 
-end_hour_group_df <- end_hour_df %>%
-  group_by(stop_hour) %>%
-  summarize(count = sum(count)) %>%
-  data.frame()
+ggplot() +
+  geom_bar(data = start_hour_group_df,
+           aes(x = start_hour - 0.2,
+               y = count,
+               fill = 'Start'),
+           stat = 'identity',
+           width = 0.4) +
+  geom_bar(data = end_hour_group_df,
+           aes(x = stop_hour + 0.2,
+               y = count,
+               fill = 'Stop'),
+           stat = 'identity',
+           width = 0.4) +
+  scale_fill_manual(values = c('royalblue', 'orangered3')) +
+  hist_theme +
+  xlab('Hour of Day') +
+  ylab('Frequency')
 
+# Look at day of the week
+day_of_week_count_df <- july_citi_date_sdf %>%
+  select(date_format(column('start_time'), 'E') %>% 
+           alias('day_of_week')) %>%
+  select('day_of_week') %>%
+  groupBy('day_of_week') %>%
+  count() %>%
+  orderBy('day_of_week') %>%
+  collect()
+
+day_of_week_count_df$ordinal_number = c(6, 2, 7, 1, 5, 3, 4)
+
+day_of_week_count_df <- day_of_week_count_df %>%
+  dplyr::arrange(ordinal_number)
+
+ggplot(day_of_week_count_df, aes(x = day_of_week, y = count)) +
+  geom_bar(stat = 'identity')
+    
 ##################
 # Group by paths #
 ##################
@@ -135,7 +195,8 @@ end_hour_group_df <- end_hour_df %>%
 # We can do this by sorting the two station names alphabetically, then 
 # concatenating the two together.
 
-# Separate station names. station_1 takes the one that comes first alphabetically.
+# Separate station names. station_1 takes the one that comes first
+# alphabetically.
 station_1 <- ifelse(column('start_station_name') < column('end_station_name'), 
                     column('start_station_name'), 
                     column('end_station_name'))
@@ -144,12 +205,11 @@ station_2 <- ifelse(column('start_station_name') < column('end_station_name'),
                     column('start_station_name'))
 is_subscriber <- ifelse(column('usertype') == 'Subscriber', 1, 0)
 
-# Concatenate station names into a string and count occurrences
+# Concatenate station names into a string and count occurrences.
 most_common_path_sdf <- july_citi_date_sdf %>%
   select(column('*'),
          concat(station_1, lit(' - '), station_2) %>% alias('station_names'),
-         alias(is_subscriber, 'is_subscriber')
-         ) %>%
+         alias(is_subscriber, 'is_subscriber')) %>%
   groupBy('station_names') %>%
   agg(count = count(column('*')) %>% cast('int'),
       pct_subscriber = avg(column('is_subscriber'))) %>%
@@ -157,8 +217,7 @@ most_common_path_sdf <- july_citi_date_sdf %>%
 
 most_common_path_df <- take(most_common_path_sdf, 50)
 
-# Next, we can split the concatenated station names and count
-# the occurrences
+# Next, we can split the concatenated station names and count the occurrences.
 path_freq_sdf <- selectExpr(most_common_path_sdf,
                             '*',
                             "split(station_names, ' - ')[0]",
@@ -167,7 +226,9 @@ path_freq_sdf <- selectExpr(most_common_path_sdf,
            alias(column('split(station_names,  - )[0]'), 'station_1'),
            alias(column('split(station_names,  - )[1]'), 'station_2')))
 
-path_coord_freq_sdf <- join(path_freq_sdf, lut_sdf, column('station_1') == column('start_station_name')) %>%
+path_coord_freq_sdf <- join(path_freq_sdf,
+                            lut_sdf,
+                            column('station_1') == column('start_station_name')) %>%
   select(c('station_1', 
            'station_2',
            'count',
@@ -190,8 +251,9 @@ path_coord_freq_df <- take(path_coord_freq_sdf, 300)
 ###############################
 
 path_dir_freq_sdf <- july_citi_date_sdf %>%
-  groupBy('start_station_name', 'start_station_latitude', 'start_station_longitude',
-          'end_station_name', 'end_station_latitude', 'end_station_longitude') %>%
+  groupBy('start_station_name', 'start_station_latitude',
+          'start_station_longitude', 'end_station_name', 'end_station_latitude',
+          'end_station_longitude') %>%
   count() %>%
   orderBy(column('count') %>% desc())
 
