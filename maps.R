@@ -28,6 +28,10 @@ end_df <- project_coordinates(end_df,
                               'end_station_latitude',
                               'end_station_longitude')
 
+station_use_df <- project_coordinates(station_use_df,
+                                      'station_latitude',
+                                      'station_longitude')
+
 path_coord_freq_df <- project_coordinates(path_coord_freq_df,
                                           'lat_1',
                                           'lon_1') %>%
@@ -67,6 +71,8 @@ plot_window <- coord_fixed(ratio = 1,
 #########################
 # Plot the start points #
 #########################
+png(filename = 'start_points.png', width = 700, height = 700)
+
 nyc_map_plot +
   geom_point(data = start_df,
              aes(x = start_station_longitude,
@@ -76,17 +82,21 @@ nyc_map_plot +
              colour = 'black',
              fill = 'white',
              stroke = 0.2) +
+  title_format + 
   plot_window +
   blank_axes +
   fill_ocean +
   scale_size_area(name = 'Frequency', max_size = 5) +
   xlab('Longitude') +
   ylab('Latitude')
-  # coord_fixed(ratio = 1, xlim = c(975000, 1025000), ylim = c(150000, 250000))
+
+dev.off()
   
 #######################
 # Plot the end points #
 #######################
+png(filename = 'end_points.png', width = 700, height = 700)
+
 nyc_map_plot +
   geom_point(data = end_df,
              aes(x = end_station_longitude,
@@ -96,26 +106,57 @@ nyc_map_plot +
              colour = 'black',
              fill = 'white',
              stroke = 0.2) +
+  title_format +
   plot_window +
   blank_axes +
   fill_ocean +
   scale_size_area(name = 'Frequency', max_size = 5) +
   xlab('Longitude') +
   ylab('Latitude')
-  # coord_fixed(ratio = 1, xlim = c(975000, 1025000), ylim = c(150000, 250000))
+
+dev.off()
+
+#########################
+# Plot the station uses #
+#########################
+png(filename = 'station_uses.png', width = 700, height = 700)
+
+nyc_map_plot +
+  geom_point(data = station_use_df,
+             aes(x = station_longitude,
+                 y = station_latitude,
+                 size = count),
+             shape = 21,
+             colour = 'black',
+             fill = 'white',
+             stroke = 0.2) +
+  title_format +
+  plot_window +
+  blank_axes +
+  fill_ocean +
+  scale_size_area(name = 'Frequency', max_size = 5) +
+  xlab('Longitude') +
+  ylab('Latitude')
+
+dev.off()
 
 #################
 # Plot of paths #
 #################
 # Here, we plot the most frequent paths overlaid on the NYC map. Each path will
 # have slight transparency. The path is shown irrespective of direction.
+png(filename = 'citi_bike_paths.png', width = 700, height = 700)
+
+map_theme <- theme(plot.title = element_text(size = 22, hjust = 0.5),
+                   axis.title.x = element_text(size = 18),
+                   axis.title.y = element_text(size = 18))
 
 path_plot <- nyc_map_plot +
   plot_window +
   blank_axes +
   fill_ocean + 
-  labs(title = 'Citi Bike Paths', x = 'Longitude', y = 'Latitude') + 
-  title_format
+  map_theme + 
+  labs(title = 'Citi Bike Paths', x = 'Longitude', y = 'Latitude')
 
 for (i in 1:100) {
   # Create a temporary data frame which includes the start and end latitude and
@@ -135,11 +176,17 @@ for (i in 1:100) {
 
 path_plot
 
+dev.off()
+
 ###########################
 # Plot of Path Directions #
 ###########################
 # Here, we wish to show a similar plot as above, but instead show the path
 # directionality. We do this by making each end of the path a different colour.
+
+# Making points proportional 
+# path_dir_freq_df$line_count <- path_dir_freq_df$count^2
+# path_dir_freq_df$point_count <- max(path_dir_freq_df$count) * path_dir_freq_df$count
 
 path_dir_plot <- nyc_map_plot +
   plot_window +
@@ -149,9 +196,9 @@ path_dir_plot <- nyc_map_plot +
   title_format +
   scale_colour_gradient(low = 'white', high = 'red') +
   theme(legend.position = 'none') +
-  scale_size_area(max_size = 10)
+  scale_size_area(max_size = 6)
 
-for (i in 1:200) {
+for (i in 1:100) {
   if (path_dir_freq_df[i, 'start_station_name'] == path_dir_freq_df[i, 'end_station_name']) {
     # If the start and end point are the same, then plot a point.
     temp_df <- data.frame(latitude = path_dir_freq_df[i, 'start_station_latitude'],
@@ -163,11 +210,10 @@ for (i in 1:200) {
       geom_point(data = temp_df,
                  aes(x = longitude, y = latitude, size = count),
                  colour = 'red', alpha = 0.7)
-    
   } else {
     # If the start and end points are different, then draw a line between the
-    #two to indicate the path
-    
+    # two to indicate the path
+
     # Here, we interpolate points between the start and end point. This is done
     # so that we can have a colour gradient throughout the path.
     lat_interp <- seq(path_dir_freq_df[i, 'start_station_latitude'],
@@ -176,7 +222,7 @@ for (i in 1:200) {
     lon_interp <- seq(path_dir_freq_df[i, 'start_station_longitude'],
                       path_dir_freq_df[i, 'end_station_longitude'],
                       length.out = 100)
-    
+
     # Create a data frame with the interpolated values. Position is simply an
     # increasing array to determine the colour. The count must squared because
     # we are using geom_line, which incorrectly scales its sizes on a square
@@ -187,8 +233,8 @@ for (i in 1:200) {
     temp_df <- data.frame(latitude = lat_interp,
                           longitude = lon_interp,
                           position = 1:length(lat_interp),
-                          count = path_dir_freq_df[i, 'count']^2)
-      
+                          count = path_dir_freq_df[i, 'count'])
+
     # Add line to the ggplot object.
     path_dir_plot <- path_dir_plot +
       geom_line(data = temp_df,
@@ -196,7 +242,7 @@ for (i in 1:200) {
                     y = latitude,
                     colour = position,
                     size = count),
-                alpha = 0.3)
+                alpha = 0.25)
   }
 }
 
