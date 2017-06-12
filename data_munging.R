@@ -120,7 +120,9 @@ start_sdf <- july_citi_sdf %>%
   count() %>%
   orderBy(desc(column('count')))
 
+start_time <- Sys.time()
 start_df <- collect(start_sdf)
+time_start_sdf <- Sys.time() - start_time
 
 end_sdf <- july_citi_sdf %>%
   groupBy('end_station_name',
@@ -129,7 +131,9 @@ end_sdf <- july_citi_sdf %>%
   count() %>%
   orderBy(desc(column('count')))
 
+start_time <- Sys.time()
 end_df <- collect(end_sdf)
+time_end_sdf <- Sys.time() - start_time
 
 # Because start and end points have roughly the same distribution, let's combine
 # them together
@@ -148,12 +152,14 @@ end_station_sdf <- july_citi_sdf %>%
 
 all_station_sdf <- union(start_station_sdf, end_station_sdf)
 
+start_time <- Sys.time()
 station_use_df <- all_station_sdf %>%
   groupBy('station_name',
           'station_longitude',
           'station_latitude') %>%
   count() %>%
   collect()
+time_station_use_sdf <- Sys.time() - start_time
 
 # Include hourly data
 start_hour_group_df <- july_citi_date_sdf %>%

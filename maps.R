@@ -63,7 +63,6 @@ title_format <- theme(plot.title = element_text(size = 26, hjust = 0.5),
                       legend.title = element_text(size = 18),
                       legend.text = element_text(size = 12))
 
-
 plot_window <- coord_fixed(ratio = 1,
                            xlim = c(975000, 1025000),
                            ylim = c(175000, 232000))
@@ -87,8 +86,7 @@ nyc_map_plot +
   blank_axes +
   fill_ocean +
   scale_size_area(name = 'Frequency', max_size = 5) +
-  xlab('Longitude') +
-  ylab('Latitude')
+  labs(title = 'Start Points', x = 'Longitude', y = 'Latitude')
 
 dev.off()
   
@@ -111,8 +109,7 @@ nyc_map_plot +
   blank_axes +
   fill_ocean +
   scale_size_area(name = 'Frequency', max_size = 5) +
-  xlab('Longitude') +
-  ylab('Latitude')
+  labs(title = 'End Points', x = 'Longitude', y = 'Latitude')
 
 dev.off()
 
@@ -135,8 +132,7 @@ nyc_map_plot +
   blank_axes +
   fill_ocean +
   scale_size_area(name = 'Frequency', max_size = 5) +
-  xlab('Longitude') +
-  ylab('Latitude')
+  labs(title = 'Station Uses', x = 'Longitude', y = 'Latitude')
 
 dev.off()
 
@@ -147,31 +143,43 @@ dev.off()
 # have slight transparency. The path is shown irrespective of direction.
 png(filename = 'citi_bike_paths.png', width = 700, height = 700)
 
-map_theme <- theme(plot.title = element_text(size = 22, hjust = 0.5),
-                   axis.title.x = element_text(size = 18),
-                   axis.title.y = element_text(size = 18))
-
 path_plot <- nyc_map_plot +
+  title_format + 
   plot_window +
   blank_axes +
   fill_ocean + 
-  map_theme + 
+  scale_size_area(max_size = 6) + 
   labs(title = 'Citi Bike Paths', x = 'Longitude', y = 'Latitude')
 
 for (i in 1:100) {
   # Create a temporary data frame which includes the start and end latitude and
   # longitude coordinates for a given path.
-  temp_df <- data.frame(latitude = c(path_coord_freq_df[i, 'lat_1'],
-                                     path_coord_freq_df[i, 'lat_2']),
-                        longitude = c(path_coord_freq_df[i, 'lon_1'],
-                                      path_coord_freq_df[i, 'lon_2']),
-                        count = path_coord_freq_df[i, 'count'])
-  
-  path_plot <- path_plot + geom_line(data = temp_df,
-                                     aes(x = longitude,
-                                         y = latitude,
-                                         size = count),
-                                     colour = 'white', alpha = 0.25)
+  if (path_coord_freq_df[i, 'lat_1'] == path_coord_freq_df[i, 'lat_2']
+      & path_coord_freq_df[i, 'lon_1'] == path_coord_freq_df[i, 'lon_2']) {
+    # If start and end point are the same, do a geom_point
+    temp_df <- data.frame(latitude = path_coord_freq_df[i, 'lat_1'],
+                          longitude = path_coord_freq_df[i, 'lon_1'],
+                          count = path_coord_freq_df[i, 'count'])
+    
+    path_plot <- path_plot + geom_point(data = temp_df,
+                                        aes(x = longitude,
+                                            y = latitude,
+                                            size = count),
+                                        colour = 'white', alpha = 0.25)
+  } else {
+    # Otherwise, connect the two points by a line
+    temp_df <- data.frame(latitude = c(path_coord_freq_df[i, 'lat_1'],
+                                       path_coord_freq_df[i, 'lat_2']),
+                          longitude = c(path_coord_freq_df[i, 'lon_1'],
+                                        path_coord_freq_df[i, 'lon_2']),
+                          count = path_coord_freq_df[i, 'count'])
+    
+    path_plot <- path_plot + geom_line(data = temp_df,
+                                       aes(x = longitude,
+                                           y = latitude,
+                                           size = count),
+                                       colour = 'white', alpha = 0.25)
+  }
 }
 
 path_plot
@@ -187,6 +195,7 @@ dev.off()
 # Making points proportional 
 # path_dir_freq_df$line_count <- path_dir_freq_df$count^2
 # path_dir_freq_df$point_count <- max(path_dir_freq_df$count) * path_dir_freq_df$count
+png(filename = 'citi_bike_paths_dir.png', width = 700, height = 700)
 
 path_dir_plot <- nyc_map_plot +
   plot_window +
@@ -247,3 +256,5 @@ for (i in 1:100) {
 }
 
 path_dir_plot
+
+dev.off()
