@@ -70,7 +70,7 @@ plot_window <- coord_fixed(ratio = 1,
 #########################
 # Plot the start points #
 #########################
-png(filename = 'start_points.png', width = 700, height = 700)
+png(filename = 'plots/start_points.png', width = 700, height = 700)
 
 nyc_map_plot +
   geom_point(data = start_df,
@@ -93,7 +93,7 @@ dev.off()
 #######################
 # Plot the end points #
 #######################
-png(filename = 'end_points.png', width = 700, height = 700)
+png(filename = 'plots/end_points.png', width = 700, height = 700)
 
 nyc_map_plot +
   geom_point(data = end_df,
@@ -116,7 +116,7 @@ dev.off()
 #########################
 # Plot the station uses #
 #########################
-png(filename = 'station_uses.png', width = 700, height = 700)
+png(filename = 'plots/station_uses.png', width = 700, height = 700)
 
 nyc_map_plot +
   geom_point(data = station_use_df,
@@ -141,21 +141,20 @@ dev.off()
 #################
 # Here, we plot the most frequent paths overlaid on the NYC map. Each path will
 # have slight transparency. The path is shown irrespective of direction.
-png(filename = 'citi_bike_paths.png', width = 700, height = 700)
+png(filename = 'plots/citi_bike_paths.png', width = 700, height = 700)
 
 path_plot <- nyc_map_plot +
   title_format + 
   plot_window +
   blank_axes +
   fill_ocean + 
-  scale_size_area(max_size = 6) + 
-  labs(title = 'Citi Bike Paths', x = 'Longitude', y = 'Latitude')
+  scale_size_area(name = 'Frequency', max_size = 6) + 
+  labs(title = 'Bike Paths', x = 'Longitude', y = 'Latitude')
 
 for (i in 1:100) {
   # Create a temporary data frame which includes the start and end latitude and
   # longitude coordinates for a given path.
-  if (path_coord_freq_df[i, 'lat_1'] == path_coord_freq_df[i, 'lat_2']
-      & path_coord_freq_df[i, 'lon_1'] == path_coord_freq_df[i, 'lon_2']) {
+  if (path_coord_freq_df[i, 'station_1'] == path_coord_freq_df[i, 'station_2']) {
     # If start and end point are the same, do a geom_point
     temp_df <- data.frame(latitude = path_coord_freq_df[i, 'lat_1'],
                           longitude = path_coord_freq_df[i, 'lon_1'],
@@ -191,23 +190,20 @@ dev.off()
 ###########################
 # Here, we wish to show a similar plot as above, but instead show the path
 # directionality. We do this by making each end of the path a different colour.
-
-# Making points proportional 
-# path_dir_freq_df$line_count <- path_dir_freq_df$count^2
-# path_dir_freq_df$point_count <- max(path_dir_freq_df$count) * path_dir_freq_df$count
-png(filename = 'citi_bike_paths_dir.png', width = 700, height = 700)
+png(filename = 'plots/citi_bike_paths_dir.png', width = 700, height = 700)
 
 path_dir_plot <- nyc_map_plot +
   plot_window +
   blank_axes +
   fill_ocean + 
-  labs(title = 'Citi Bike Paths', x = 'Longitude', y = 'Latitude') + 
-  title_format +
   scale_colour_gradient(low = 'white', high = 'red') +
-  theme(legend.position = 'none') +
-  scale_size_area(max_size = 6)
+  scale_size_area(name = 'Frequency', max_size = 6) +
+  title_format +
+  labs(title = 'Bike Path Directions (Start: White, End: Red)',
+       x = 'Longitude', y = 'Latitude') +
+  guides(colour = F)
 
-for (i in 1:100) {
+for (i in 1:200) {
   if (path_dir_freq_df[i, 'start_station_name'] == path_dir_freq_df[i, 'end_station_name']) {
     # If the start and end point are the same, then plot a point.
     temp_df <- data.frame(latitude = path_dir_freq_df[i, 'start_station_latitude'],
@@ -218,7 +214,7 @@ for (i in 1:100) {
     path_dir_plot <- path_dir_plot +
       geom_point(data = temp_df,
                  aes(x = longitude, y = latitude, size = count),
-                 colour = 'red', alpha = 0.7)
+                 colour = 'red', alpha = 0.7, show.legend = F)
   } else {
     # If the start and end points are different, then draw a line between the
     # two to indicate the path
@@ -238,7 +234,7 @@ for (i in 1:100) {
     # scale. This makes sense for geom_point, where a circle with twice the
     # value should only have sqrt(2) the radius. However, for geom_line, because
     # we are plotting a series of rectangles, where the width doesn't change,
-    # we want the area to be proportional to the line width. Hence we square it
+    # we want the area to be proportional to the line width. Hence we square it.
     temp_df <- data.frame(latitude = lat_interp,
                           longitude = lon_interp,
                           position = 1:length(lat_interp),
