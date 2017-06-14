@@ -28,32 +28,24 @@ end_df <- project_coordinates(end_df,
                               'end_station_latitude',
                               'end_station_longitude')
 
-station_use_df <- project_coordinates(station_use_df,
-                                      'station_latitude',
-                                      'station_longitude')
+most_common_station_df <- project_coordinates(most_common_station_df,
+                                              'station_latitude',
+                                              'station_longitude')
 
-path_coord_freq_df <-
-  project_coordinates(path_coord_freq_df,
-                      'lat_1',
-                      'lon_1') %>%
+path_coord_freq_df <- path_coord_freq_df
+  project_coordinates('lat_1', 'lon_1') %>%
   project_coordinates('lat_2', 'lon_2')
 
-path_dir_freq_df <-
-  project_coordinates(path_dir_freq_df,
-                      'start_station_latitude',
-                      'start_station_longitude') %>%
+path_dir_freq_df <- path_dir_freq_df %>% 
+  project_coordinates('start_station_latitude', 'start_station_longitude') %>%
   project_coordinates('end_station_latitude', 'end_station_longitude')
 
-path_dir_freq_am_df <-
-  project_coordinates(path_dir_freq_am_df,
-                      'start_station_latitude',
-                      'start_station_longitude') %>%
+path_dir_freq_am_df <- path_dir_freq_am_df %>%
+  project_coordinates('start_station_latitude', 'start_station_longitude') %>%
   project_coordinates('end_station_latitude', 'end_station_longitude')
 
-path_dir_freq_pm_df <-
-  project_coordinates(path_dir_freq_pm_df,
-                      'start_station_latitude',
-                      'start_station_longitude') %>%
+path_dir_freq_pm_df <- path_dir_freq_pm_df %>%
+  project_coordinates('start_station_latitude', 'start_station_longitude') %>%
   project_coordinates('end_station_latitude', 'end_station_longitude')
 
 nyc_map_plot <- ggplot() +
@@ -132,7 +124,7 @@ dev.off()
 png(filename = 'plots/station_uses.png', width = 700, height = 700)
 
 nyc_map_plot +
-  geom_point(data = station_use_df,
+  geom_point(data = most_common_station_df,
              aes(x = station_longitude,
                  y = station_latitude,
                  size = count),
@@ -273,10 +265,10 @@ dev.off()
 
 png(filename = 'plots/citi_bike_paths_dir_am.png', width = 700, height = 700)
 plot_paths(path_dir_freq_am_df,
-           title = 'Bike Path Directions - AM (Start: White, End: Red)')
+           title_str = 'Bike Path Directions - AM (Start: White, End: Red)')
 dev.off()
 
 png(filename = 'plots/citi_bike_paths_dir_pm.png', width = 700, height = 700)
 plot_paths(path_dir_freq_df,
-           title = 'Bike Path Directions - PM (Start: White, End: Red)')
+           title_str = 'Bike Path Directions - PM (Start: White, End: Red)')
 dev.off()

@@ -23,6 +23,11 @@ df_cols <- c('starttime', 'start.station.name', 'start.station.latitude',
 july_citi_df <- read.csv('citibike/201607-citibike-tripdata.csv')[, df_cols]
 july_citi_sdf <- as.DataFrame(july_citi_df)
 
+# Write first 10 rows to CSV
+write.csv(take(july_citi_sdf, 10),
+          'csv_files/july_citi_sdf_10.csv',
+          row.names = F)
+
 ############################
 # Extract date information #
 ############################
@@ -30,8 +35,6 @@ july_citi_sdf <- as.DataFrame(july_citi_df)
 # Since timestamps are represented as strings in this data and UDFs are not very
 # feasible in SparkR, we extracted each piece of the date (e.g., year, month,
 # day, etc.)
-
-
 
 july_citi_date_sdf <- july_citi_sdf %>%
   select(c(columns(july_citi_sdf),
@@ -48,7 +51,6 @@ july_citi_date_sdf <- july_citi_sdf %>%
              alias('stoptime'))) %>%
   drop(july_citi_sdf$starttime) %>%
   drop(july_citi_sdf$stoptime)
-  
 
 # Create a lookup table from station name to coordinates.
 lut_sdf <-
@@ -94,28 +96,28 @@ time_end_sdf <- Sys.time() - start_time
 # Because start and end points have roughly the same distribution, let's combine
 # them together
 
-start_station_sdf <- july_citi_sdf %>%
+start_station_sdf <- july_citi_date_sdf %>%
   select(column('starttime') %>% alias('use_time'),
          column('start_station_name') %>% alias('station_name'),
          column('start_station_latitude') %>% alias('station_latitude'),
          column('start_station_longitude') %>% alias('station_longitude'))
 
-end_station_sdf <- july_citi_sdf %>%
+end_station_sdf <- july_citi_date_sdf %>%
   select(column('stoptime') %>% alias('use_time'),
          column('end_station_name') %>% alias('station_name'),
          column('end_station_latitude') %>% alias('station_latitude'),
          column('end_station_longitude') %>% alias('station_longitude'))
 
-all_station_sdf <- union(start_station_sdf, end_station_sdf)
+station_uses_sdf <- union(start_station_sdf, end_station_sdf)
 
 start_time <- Sys.time()
-station_use_df <- all_station_sdf %>%
+most_common_station_df <- station_uses_sdf %>%
   groupBy('station_name',
           'station_longitude',
           'station_latitude') %>%
   count() %>%
   collect()
-time_station_use_sdf <- Sys.time() - start_time
+time_most_common_station_sdf <- Sys.time() - start_time
 
 # Include hourly data
 start_hour_group_df <- july_citi_date_sdf %>%
@@ -140,6 +142,7 @@ hist_theme <- theme(plot.title = element_text(size = 22, hjust = 0.5),
                     legend.title = element_blank(),
                     legend.text = element_text(size = 12))
 
+png(filename = 'plots/hourly_usage.png', width = 700, height = 400)
 ggplot() +
   geom_bar(data = start_hour_group_df,
            aes(x = start_hour - 0.2,
@@ -153,9 +156,12 @@ ggplot() +
                fill = 'Stop'),
            stat = 'identity',
            width = 0.4) +
+  geom_vline(xintercept = 8.5, size = 1, linetype = 2) +
+  geom_vline(xintercept = 17.5, size = 1, linetype = 2) +
   scale_fill_manual(values = c('royalblue', 'orangered3')) +
   hist_theme +
-  labs(x = 'Hour of Day', y = 'Frequency')
+  labs(title = 'Hourly Usage', x = 'Hour of Day', y = 'Frequency')
+dev.off()
 
 # Look at day of the week
 day_of_week_count_df <- july_citi_date_sdf %>%
@@ -241,8 +247,11 @@ path_coord_freq_df <- take(path_coord_freq_sdf, 300)
 ###############################
 
 path_dir_freq_sdf <- july_citi_date_sdf %>%
-  groupBy('start_station_name', 'start_station_latitude',
-          'start_station_longitude', 'end_station_name', 'end_station_latitude',
+  groupBy('start_station_name',
+          'start_station_latitude',
+          'start_station_longitude',
+          'end_station_name',
+          'end_station_latitude',
           'end_station_longitude') %>%
   count() %>%
   orderBy(column('count') %>% desc())
@@ -252,8 +261,11 @@ path_dir_freq_df <- take(path_dir_freq_sdf, 300)
 # Split between morning and evening commutes
 path_dir_freq_am_sdf <- july_citi_date_sdf %>%
   where(hour(column('starttime')) == 8 | hour(column('starttime')) == 9) %>%
-  groupBy('start_station_name', 'start_station_latitude',
-          'start_station_longitude', 'end_station_name', 'end_station_latitude',
+  groupBy('start_station_name',
+          'start_station_latitude',
+          'start_station_longitude',
+          'end_station_name',
+          'end_station_latitude',
           'end_station_longitude') %>%
   count() %>%
   orderBy(column('count') %>% desc())
@@ -262,8 +274,11 @@ path_dir_freq_am_df <- take(path_dir_freq_am_sdf, 300)
 
 path_dir_freq_pm_sdf <- july_citi_date_sdf %>%
   where(hour(column('starttime')) == 17 | hour(column('starttime')) == 18) %>%
-  groupBy('start_station_name', 'start_station_latitude',
-          'start_station_longitude', 'end_station_name', 'end_station_latitude',
+  groupBy('start_station_name',
+          'start_station_latitude',
+          'start_station_longitude',
+          'end_station_name',
+          'end_station_latitude',
           'end_station_longitude') %>%
   count() %>%
   orderBy(column('count') %>% desc())
