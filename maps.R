@@ -32,16 +32,29 @@ station_use_df <- project_coordinates(station_use_df,
                                       'station_latitude',
                                       'station_longitude')
 
-path_coord_freq_df <- project_coordinates(path_coord_freq_df,
-                                          'lat_1',
-                                          'lon_1') %>%
+path_coord_freq_df <-
+  project_coordinates(path_coord_freq_df,
+                      'lat_1',
+                      'lon_1') %>%
   project_coordinates('lat_2', 'lon_2')
 
-path_dir_freq_df <- project_coordinates(path_dir_freq_df,
-                                        'start_station_latitude',
-                                        'start_station_longitude') %>%
+path_dir_freq_df <-
+  project_coordinates(path_dir_freq_df,
+                      'start_station_latitude',
+                      'start_station_longitude') %>%
   project_coordinates('end_station_latitude', 'end_station_longitude')
 
+path_dir_freq_am_df <-
+  project_coordinates(path_dir_freq_am_df,
+                      'start_station_latitude',
+                      'start_station_longitude') %>%
+  project_coordinates('end_station_latitude', 'end_station_longitude')
+
+path_dir_freq_pm_df <-
+  project_coordinates(path_dir_freq_pm_df,
+                      'start_station_latitude',
+                      'start_station_longitude') %>%
+  project_coordinates('end_station_latitude', 'end_station_longitude')
 
 nyc_map_plot <- ggplot() +
   geom_polygon(data = counties, aes(x = long, y = lat, group = group))
@@ -190,67 +203,80 @@ dev.off()
 ###########################
 # Here, we wish to show a similar plot as above, but instead show the path
 # directionality. We do this by making each end of the path a different colour.
-png(filename = 'plots/citi_bike_paths_dir.png', width = 700, height = 700)
 
-path_dir_plot <- nyc_map_plot +
-  plot_window +
-  blank_axes +
-  fill_ocean + 
-  scale_colour_gradient(low = 'white', high = 'red') +
-  scale_size_area(name = 'Frequency', max_size = 6) +
-  title_format +
-  labs(title = 'Bike Path Directions (Start: White, End: Red)',
-       x = 'Longitude', y = 'Latitude') +
-  guides(colour = F)
-
-for (i in 1:200) {
-  if (path_dir_freq_df[i, 'start_station_name'] == path_dir_freq_df[i, 'end_station_name']) {
-    # If the start and end point are the same, then plot a point.
-    temp_df <- data.frame(latitude = path_dir_freq_df[i, 'start_station_latitude'],
-                          longitude = path_dir_freq_df[i, 'start_station_longitude'],
-                          count = path_dir_freq_df[i, 'count'])
-    
-    # Add point to ggplot object.
-    path_dir_plot <- path_dir_plot +
-      geom_point(data = temp_df,
-                 aes(x = longitude, y = latitude, size = count),
-                 colour = 'red', alpha = 0.7, show.legend = F)
-  } else {
-    # If the start and end points are different, then draw a line between the
-    # two to indicate the path
-
-    # Here, we interpolate points between the start and end point. This is done
-    # so that we can have a colour gradient throughout the path.
-    lat_interp <- seq(path_dir_freq_df[i, 'start_station_latitude'],
-                      path_dir_freq_df[i, 'end_station_latitude'],
-                      length.out = 100)
-    lon_interp <- seq(path_dir_freq_df[i, 'start_station_longitude'],
-                      path_dir_freq_df[i, 'end_station_longitude'],
-                      length.out = 100)
-
-    # Create a data frame with the interpolated values. Position is simply an
-    # increasing array to determine the colour. The count must squared because
-    # we are using geom_line, which incorrectly scales its sizes on a square
-    # scale. This makes sense for geom_point, where a circle with twice the
-    # value should only have sqrt(2) the radius. However, for geom_line, because
-    # we are plotting a series of rectangles, where the width doesn't change,
-    # we want the area to be proportional to the line width. Hence we square it.
-    temp_df <- data.frame(latitude = lat_interp,
-                          longitude = lon_interp,
-                          position = 1:length(lat_interp),
-                          count = path_dir_freq_df[i, 'count'])
-
-    # Add line to the ggplot object.
-    path_dir_plot <- path_dir_plot +
-      geom_line(data = temp_df,
-                aes(x = longitude,
-                    y = latitude,
-                    colour = position,
-                    size = count),
-                alpha = 0.25)
+plot_paths <- function(df, title_str, n = 100) {
+  plot_object <- nyc_map_plot +
+    plot_window +
+    blank_axes +
+    fill_ocean + 
+    scale_colour_gradient(low = 'white', high = 'red') +
+    scale_size_area(name = 'Frequency', max_size = 6) +
+    title_format +
+    labs(title = title_str,
+         x = 'Longitude', y = 'Latitude') +
+    guides(colour = F)
+  
+  for (i in 1:n) {
+    if (df[i, 'start_station_name'] == df[i, 'end_station_name']) {
+      # If the start and end point are the same, then plot a point.
+      temp_df <- data.frame(latitude = df[i, 'start_station_latitude'],
+                            longitude = df[i, 'start_station_longitude'],
+                            count = df[i, 'count'])
+      
+      # Add point to ggplot object.
+      plot_object <- plot_object +
+        geom_point(data = temp_df,
+                   aes(x = longitude, y = latitude, size = count),
+                   colour = 'red', alpha = 0.7, show.legend = F)
+    } else {
+      # If the start and end points are different, then draw a line between the
+      # two to indicate the path
+      
+      # Here, we interpolate points between the start and end point. This is
+      # done so that we can have a colour gradient throughout the path.
+      lat_interp <- seq(df[i, 'start_station_latitude'],
+                        df[i, 'end_station_latitude'],
+                        length.out = 100)
+      lon_interp <- seq(df[i, 'start_station_longitude'],
+                        df[i, 'end_station_longitude'],
+                        length.out = 100)
+      
+      # Create a data frame with the interpolated values. Position is simply an
+      # increasing array to determine the colour. The count must squared because
+      # we are using geom_line, which incorrectly scales its sizes on a square
+      # scale. This makes sense for geom_point, where a circle with twice the
+      # value should only have sqrt(2) the radius. However, for geom_line,
+      # because # we are plotting a series of rectangles, where the width
+      # doesn't change, we want the area to be proportional to the line width.
+      # Hence we square it.
+      temp_df <- data.frame(latitude = lat_interp,
+                            longitude = lon_interp,
+                            position = 1:length(lat_interp),
+                            count = df[i, 'count'])
+      # Add line to the ggplot object.
+      plot_object <- plot_object +
+        geom_line(data = temp_df,
+                  aes(x = longitude,
+                      y = latitude,
+                      colour = position,
+                      size = count),
+                  alpha = 0.25)
+    }
   }
+  plot_object
 }
 
-path_dir_plot
+png(filename = 'plots/citi_bike_paths_dir.png', width = 700, height = 700)
+plot_paths(path_dir_freq_df,
+           title_str = 'Bike Path Directions (Start: White, End: Red)')
+dev.off()
 
+png(filename = 'plots/citi_bike_paths_dir_am.png', width = 700, height = 700)
+plot_paths(path_dir_freq_am_df,
+           title = 'Bike Path Directions - AM (Start: White, End: Red)')
+dev.off()
+
+png(filename = 'plots/citi_bike_paths_dir_pm.png', width = 700, height = 700)
+plot_paths(path_dir_freq_df,
+           title = 'Bike Path Directions - PM (Start: White, End: Red)')
 dev.off()

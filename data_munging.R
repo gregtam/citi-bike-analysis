@@ -223,8 +223,8 @@ ggplot(day_of_week_count_df, aes(x = day_of_week, y = count)) +
 ##################
 # Group by paths #
 ##################
-# Here, we take a look at the most common paths irrespective of direction.
-# We can do this by sorting the two station names alphabetically, then 
+# Here, we take a look at the most common paths irrespective of direction. We
+# can do this by sorting the two station names alphabetically, then 
 # concatenating the two together.
 
 # Separate station names. station_1 takes the one that comes first
@@ -250,17 +250,19 @@ most_common_path_sdf <- july_citi_date_sdf %>%
 most_common_path_df <- take(most_common_path_sdf, 50)
 
 # Next, we can split the concatenated station names and count the occurrences.
-path_freq_sdf <- selectExpr(most_common_path_sdf,
-                            '*',
-                            "split(station_names, ' - ')[0]",
-                            "split(station_names, ' - ')[1]") %>%
+path_freq_sdf <-
+  selectExpr(most_common_path_sdf,
+             '*',
+             "split(station_names, ' - ')[0]",
+             "split(station_names, ' - ')[1]") %>%
   select(c('count', 
            alias(column('split(station_names,  - )[0]'), 'station_1'),
            alias(column('split(station_names,  - )[1]'), 'station_2')))
 
-path_coord_freq_sdf <- join(path_freq_sdf,
-                            lut_sdf,
-                            column('station_1') == column('start_station_name')) %>%
+path_coord_freq_sdf <-
+  join(path_freq_sdf,
+       lut_sdf,
+       column('station_1') == column('start_station_name')) %>%
   select(c('station_1', 
            'station_2',
            'count',
@@ -290,3 +292,24 @@ path_dir_freq_sdf <- july_citi_date_sdf %>%
   orderBy(column('count') %>% desc())
 
 path_dir_freq_df <- take(path_dir_freq_sdf, 300)
+
+# Split between morning and evening commutes
+path_dir_freq_am_sdf <- july_citi_date_sdf %>%
+  where(hour(column('start_time')) == 8 | hour(column('start_time')) == 9) %>%
+  groupBy('start_station_name', 'start_station_latitude',
+          'start_station_longitude', 'end_station_name', 'end_station_latitude',
+          'end_station_longitude') %>%
+  count() %>%
+  orderBy(column('count') %>% desc())
+
+path_dir_freq_am_df <- take(path_dir_freq_am_sdf, 300)
+
+path_dir_freq_pm_sdf <- july_citi_date_sdf %>%
+  where(hour(column('start_time')) == 17 | hour(column('start_time')) == 18) %>%
+  groupBy('start_station_name', 'start_station_latitude',
+          'start_station_longitude', 'end_station_name', 'end_station_latitude',
+          'end_station_longitude') %>%
+  count() %>%
+  orderBy(column('count') %>% desc())
+
+path_dir_freq_pm_df <- take(path_dir_freq_pm_sdf, 300)
