@@ -121,7 +121,11 @@ most_common_station_df <- station_uses_sdf %>%
   collect()
 time_most_common_station_sdf <- Sys.time() - start_time
 
-# Include hourly data
+################
+# Hourly usage #
+################
+
+# Get hourly counts
 start_hour_group_df <- july_citi_date_sdf %>%
   select(hour(column('starttime')) %>% alias('start_hour')) %>%
   groupBy('start_hour') %>%
@@ -136,6 +140,7 @@ end_hour_group_df <- july_citi_date_sdf %>%
   orderBy('stop_hour') %>%
   collect()
 
+# Set theme of plot
 hist_theme <- theme(plot.title = element_text(size = 22, hjust = 0.5),
                     axis.title.x = element_text(size = 18),
                     axis.title.y = element_text(size = 18),
@@ -144,6 +149,7 @@ hist_theme <- theme(plot.title = element_text(size = 22, hjust = 0.5),
                     legend.title = element_blank(),
                     legend.text = element_text(size = 12))
 
+# Plot hourly usage
 png(filename = 'plots/hourly_usage.png', width = 700, height = 400)
 ggplot() +
   geom_bar(data = start_hour_group_df,
