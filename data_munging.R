@@ -52,6 +52,8 @@ july_citi_date_sdf <- july_citi_sdf %>%
   drop(july_citi_sdf$starttime) %>%
   drop(july_citi_sdf$stoptime)
 
+cache(july_citi_date_sdf)
+
 # Create a lookup table from station name to coordinates.
 lut_sdf <-
   union(select(july_citi_date_sdf,
