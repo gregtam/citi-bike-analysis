@@ -198,17 +198,26 @@ dev.off()
 # Here, we wish to show a similar plot as above, but instead show the path
 # directionality. We do this by making each end of the path a different colour.
 
-plot_paths <- function(df, title_str, n = 100) {
+plot_paths <- function(df, title_str, max_limit = NA, n = 100) {
   plot_object <- nyc_map_plot +
     plot_window +
     blank_axes +
     fill_ocean + 
     scale_colour_gradient(low = 'white', high = 'red') +
-    scale_size_area(name = 'Frequency', max_size = 6, labels = comma) +
     title_format +
     labs(title = title_str,
          x = 'Longitude', y = 'Latitude') +
     guides(colour = F)
+  
+  # If max limit is specified, then set limits
+  if (is.na(max_limit)) {
+    plot_object <- plot_object +
+      scale_size_area(name = 'Frequency', max_size = 6, labels = comma)
+  } else {
+    plot_object <- plot_object +
+      scale_size_area(name = 'Frequency', max_size = 6, labels = comma,
+                      limits = c(1, max_limit))
+  }
   
   for (i in 1:n) {
     if (df[i, 'start_station_name'] == df[i, 'end_station_name']) {
@@ -259,14 +268,23 @@ plot_paths(path_dir_freq_df,
            title_str = 'Bike Path Directions (Start: White, End: Red)')
 dev.off()
 
+# We can AM and PM plots to be on the same scale. We will get the max count from
+# both tables.
+# Get the max count of AM and PM paths.
+max_count <- max(path_dir_freq_am_df$count, path_dir_freq_pm_df$count)
+# Round up to the nearest multiple of 500.
+max_limit <- ceiling(max_count/500) * 500
+
 png(filename = 'plots/citi_bike_paths_dir_am.png', width = 700, height = 700)
 plot_paths(path_dir_freq_am_df,
            title_str = 'Bike Path Directions - AM (Start: White, End: Red)',
+           max_limit = max_limit,
            n = 150)
 dev.off()
 
 png(filename = 'plots/citi_bike_paths_dir_pm.png', width = 700, height = 700)
 plot_paths(path_dir_freq_pm_df,
            title_str = 'Bike Path Directions - PM (Start: White, End: Red)',
+           max_limit = max_limit,
            n = 150)
 dev.off()
