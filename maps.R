@@ -1,4 +1,5 @@
 library(ggmap)
+library(magrittr)
 library(mapproj)
 library(rgdal)
 library(rworldmap)
@@ -32,7 +33,7 @@ most_common_station_df <- project_coordinates(most_common_station_df,
                                               'station_latitude',
                                               'station_longitude')
 
-path_coord_freq_df <- path_coord_freq_df
+path_coord_freq_df <- path_coord_freq_df %>%
   project_coordinates('lat_1', 'lon_1') %>%
   project_coordinates('lat_2', 'lon_2')
 
@@ -90,7 +91,7 @@ nyc_map_plot +
   plot_window +
   blank_axes +
   fill_ocean +
-  scale_size_area(name = 'Frequency', max_size = 5) +
+  scale_size_area(name = 'Frequency', max_size = 4) +
   labs(title = 'Start Points', x = 'Longitude', y = 'Latitude')
 
 dev.off()
@@ -113,7 +114,7 @@ nyc_map_plot +
   plot_window +
   blank_axes +
   fill_ocean +
-  scale_size_area(name = 'Frequency', max_size = 5) +
+  scale_size_area(name = 'Frequency', max_size = 4) +
   labs(title = 'End Points', x = 'Longitude', y = 'Latitude')
 
 dev.off()
@@ -136,7 +137,7 @@ nyc_map_plot +
   plot_window +
   blank_axes +
   fill_ocean +
-  scale_size_area(name = 'Frequency', max_size = 5) +
+  scale_size_area(name = 'Frequency', max_size = 4) +
   labs(title = 'Station Uses', x = 'Longitude', y = 'Latitude')
 
 dev.off()
@@ -234,13 +235,7 @@ plot_paths <- function(df, title_str, n = 100) {
                         length.out = 100)
       
       # Create a data frame with the interpolated values. Position is simply an
-      # increasing array to determine the colour. The count must squared because
-      # we are using geom_line, which incorrectly scales its sizes on a square
-      # scale. This makes sense for geom_point, where a circle with twice the
-      # value should only have sqrt(2) the radius. However, for geom_line,
-      # because # we are plotting a series of rectangles, where the width
-      # doesn't change, we want the area to be proportional to the line width.
-      # Hence we square it.
+      # increasing array to determine the colour.
       temp_df <- data.frame(latitude = lat_interp,
                             longitude = lon_interp,
                             position = 1:length(lat_interp),
@@ -265,10 +260,12 @@ dev.off()
 
 png(filename = 'plots/citi_bike_paths_dir_am.png', width = 700, height = 700)
 plot_paths(path_dir_freq_am_df,
-           title_str = 'Bike Path Directions - AM (Start: White, End: Red)')
+           title_str = 'Bike Path Directions - AM (Start: White, End: Red)',
+           n = 150)
 dev.off()
 
 png(filename = 'plots/citi_bike_paths_dir_pm.png', width = 700, height = 700)
-plot_paths(path_dir_freq_df,
-           title_str = 'Bike Path Directions - PM (Start: White, End: Red)')
+plot_paths(path_dir_freq_pm_df,
+           title_str = 'Bike Path Directions - PM (Start: White, End: Red)',
+           n = 150)
 dev.off()
