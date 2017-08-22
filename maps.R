@@ -3,6 +3,7 @@ library(magrittr)
 library(mapproj)
 library(rgdal)
 library(rworldmap)
+library(scales)
 
 # Maps data taken from http://www1.nyc.gov/site/planning/data-maps/open-data/districts-download-metadata.page
 counties <- readOGR('nybb_16d/nybb.shp', layer='nybb')
@@ -91,7 +92,7 @@ nyc_map_plot +
   plot_window +
   blank_axes +
   fill_ocean +
-  scale_size_area(name = 'Frequency', max_size = 4) +
+  scale_size_area(name = 'Frequency', max_size = 4, labels = comma) +
   labs(title = 'Start Points', x = 'Longitude', y = 'Latitude')
 
 dev.off()
@@ -114,7 +115,7 @@ nyc_map_plot +
   plot_window +
   blank_axes +
   fill_ocean +
-  scale_size_area(name = 'Frequency', max_size = 4) +
+  scale_size_area(name = 'Frequency', max_size = 4, labels = comma) +
   labs(title = 'End Points', x = 'Longitude', y = 'Latitude')
 
 dev.off()
@@ -137,7 +138,7 @@ nyc_map_plot +
   plot_window +
   blank_axes +
   fill_ocean +
-  scale_size_area(name = 'Frequency', max_size = 4) +
+  scale_size_area(name = 'Frequency', max_size = 4, labels = comma) +
   labs(title = 'Station Uses', x = 'Longitude', y = 'Latitude')
 
 dev.off()
@@ -154,7 +155,7 @@ path_plot <- nyc_map_plot +
   plot_window +
   blank_axes +
   fill_ocean + 
-  scale_size_area(name = 'Frequency', max_size = 6) + 
+  scale_size_area(name = 'Frequency', max_size = 6, labels = comma) + 
   labs(title = 'Bike Paths', x = 'Longitude', y = 'Latitude')
 
 for (i in 1:100) {
@@ -203,7 +204,7 @@ plot_paths <- function(df, title_str, n = 100) {
     blank_axes +
     fill_ocean + 
     scale_colour_gradient(low = 'white', high = 'red') +
-    scale_size_area(name = 'Frequency', max_size = 6) +
+    scale_size_area(name = 'Frequency', max_size = 6, labels = comma) +
     title_format +
     labs(title = title_str,
          x = 'Longitude', y = 'Latitude') +
