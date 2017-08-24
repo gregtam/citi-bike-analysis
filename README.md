@@ -5,5 +5,6 @@ The nybb_16d folder contains the maps data.
 
 ![Bike Paths](/plots/citi_bike_paths.png)
 ![Station Uses](/plots/station_uses.png)
-![Station Paths (AM)](/plots/citi_bike_paths_dir_wkdy_am.png)
-![Station Paths (PM)](/plots/citi_bike_paths_dir_wkdy_pm.png)
+![Station Paths (Weekday AM)](/plots/citi_bike_paths_dir_wkdy_am.png)
+![Station Paths (Weekday PM)](/plots/citi_bike_paths_dir_wkdy_pm.png)
+![Station Paths (Weekend)](/plots/citi_bike_paths_dir_wknd.png)
