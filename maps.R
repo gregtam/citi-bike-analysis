@@ -43,11 +43,11 @@ path_dir_freq_proj_df <- path_dir_freq_df %>%
   project_coordinates('start_station_latitude', 'start_station_longitude') %>%
   project_coordinates('end_station_latitude', 'end_station_longitude')
 
-path_dir_freq_am_proj_df <- path_dir_freq_am_df %>%
+path_dir_freq_wkdy_am_proj_df <- path_dir_freq_wkdy_am_df %>%
   project_coordinates('start_station_latitude', 'start_station_longitude') %>%
   project_coordinates('end_station_latitude', 'end_station_longitude')
 
-path_dir_freq_pm_proj_df <- path_dir_freq_pm_df %>%
+path_dir_freq_wkdy_pm_proj_df <- path_dir_freq_wkdy_pm_df %>%
   project_coordinates('start_station_latitude', 'start_station_longitude') %>%
   project_coordinates('end_station_latitude', 'end_station_longitude')
 
@@ -210,7 +210,18 @@ dev.off()
 # Here, we wish to show a similar plot as above, but instead show the path
 # directionality. We do this by making each end of the path a different colour.
 
-plot_paths <- function(df, title_str, max_limit = NA, n = 100) {
+plot_paths <- function(df, title_str, n = 100, max_limit = NA, max_size = 6) {
+  # Plots Citi Bike paths on the New York City map.
+  #
+  # Inputs:
+  #   df: a DataFrame of the paths. It should have projected coordinate
+  #       and counts
+  #   title_str: A string representing the title of the plot
+  #   n: The n most frequent paths will be plotted. (Default: 100)
+  #   max_limit: The maximum scale size. If NA, then limits will not be 
+  #              specified (Default: NA)
+  #   max_size: The maximum size of the plotted lines. (Default: 6)
+  
   plot_object <- nyc_map_plot +
     title_format +
     remove_axis_labels +
@@ -224,10 +235,10 @@ plot_paths <- function(df, title_str, max_limit = NA, n = 100) {
   # If max limit is specified, then set limits
   if (is.na(max_limit)) {
     plot_object <- plot_object +
-      scale_size_area(name = 'Frequency', max_size = 6, labels = comma)
+      scale_size_area(name = 'Frequency', max_size = max_size, labels = comma)
   } else {
     plot_object <- plot_object +
-      scale_size_area(name = 'Frequency', max_size = 6, labels = comma,
+      scale_size_area(name = 'Frequency', max_size = max_size, labels = comma,
                       limits = c(1, max_limit))
   }
   
@@ -278,32 +289,36 @@ plot_paths <- function(df, title_str, max_limit = NA, n = 100) {
 
 png(filename = 'plots/citi_bike_paths_dir.png', width = 700, height = 700)
 plot_paths(path_dir_freq_proj_df,
-           title_str = 'Bike Path Directions (Start: White, End: Red)')
+           title_str = 'Bike Path Directions (Start: White, End: Red)',
+           n = 150)
 dev.off()
 
-# We can AM and PM plots to be on the same scale. We will get the max count from
-# both tables.
-# Get the max count of AM and PM paths.
-max_count <- max(path_dir_freq_am_df$count, path_dir_freq_pm_df$count)
+# We want AM, PM, and weekend plots to be on the same scale. We will get the max
+# count from all three tables.
+# Get the max count of AM, PM, and weekend paths.
+max_count <- max(path_dir_freq_wkdy_am_proj_df$count,
+                 path_dir_freq_wkdy_pm_proj_df$count,
+                 path_dir_freq_wknd_proj_df$count)
 # Round up to the nearest multiple of 500.
 max_limit <- ceiling(max_count/500) * 500
 
-png(filename = 'plots/citi_bike_paths_dir_am.png', width = 700, height = 700)
-plot_paths(path_dir_freq_am_proj_df,
-           title_str = 'Bike Path Directions - AM (Start: White, End: Red)',
+png(filename = 'plots/citi_bike_paths_dir_wkdy_am.png', width = 700, height = 700)
+plot_paths(path_dir_freq_wkdy_am_proj_df,
+           title_str = 'Bike Paths - Weekday AM (Start: White, End: Red)',
            max_limit = max_limit,
            n = 150)
 dev.off()
 
-png(filename = 'plots/citi_bike_paths_dir_pm.png', width = 700, height = 700)
-plot_paths(path_dir_freq_pm_proj_df,
-           title_str = 'Bike Path Directions - PM (Start: White, End: Red)',
+png(filename = 'plots/citi_bike_paths_dir_wkdy_pm.png', width = 700, height = 700)
+plot_paths(path_dir_freq_wkdy_pm_proj_df,
+           title_str = 'Bike Paths - Weekday PM (Start: White, End: Red)',
            max_limit = max_limit,
            n = 150)
 dev.off()
 
 png(filename = 'plots/citi_bike_paths_dir_wknd.png', width = 700, height = 700)
 plot_paths(path_dir_freq_wknd_proj_df,
-           title_str = 'Bike Path Directions - Weekend (Start: White, End: Red)',
+           title_str = 'Bike Paths - Weekend (Start: White, End: Red)',
+           max_limit = max_limit,
            n = 150)
 dev.off()

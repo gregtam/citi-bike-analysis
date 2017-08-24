@@ -30,7 +30,7 @@ ggplot() +
   geom_vline(xintercept = 17.5, size = 1, linetype = 2) +
   scale_fill_manual(values = c('royalblue', 'orangered3')) +
   hist_theme +
-  labs(title = 'Hourly Usage For Weekday', x = 'Hour of Day', y = 'Frequency')
+  labs(title = 'Hourly Usage For Weekdays', x = 'Hour of Day', y = 'Frequency')
 dev.off()
 
 # Plot hourly usage for weekend
@@ -50,7 +50,7 @@ ggplot() +
            width = 0.4) +
   scale_fill_manual(values = c('royalblue', 'orangered3')) +
   hist_theme +
-  labs(title = 'Hourly Usage for Weekend', x = 'Hour of Day', y = 'Frequency')
+  labs(title = 'Hourly Usage for Weekends', x = 'Hour of Day', y = 'Frequency')
 dev.off()
 
 

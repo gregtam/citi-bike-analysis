@@ -124,9 +124,10 @@ end_hour_weekend_group_df <- weekend_bike_trips_sdf %>%
   orderBy('stop_hour') %>%
   collect()
     
-##################
-# Group by paths #
-##################
+#####################
+# Most Common Paths #
+#####################
+
 # Here, we take a look at the most common paths irrespective of direction. We
 # can do this by sorting the two station names alphabetically, then 
 # concatenating the two together.
@@ -184,9 +185,9 @@ path_coord_freq_sdf <- path_freq_sdf %>%
 
 path_coord_freq_df <- take(path_coord_freq_sdf, 1000)
 
-###############################
-# Most Common Path Directions #
-###############################
+#####################################
+# Most Common Path (With Direction) #
+#####################################
 
 path_dir_freq_sdf <- citi_bike_trips_sdf %>%
   groupBy('start_station_name',
@@ -200,9 +201,9 @@ path_dir_freq_sdf <- citi_bike_trips_sdf %>%
 
 path_dir_freq_df <- take(path_dir_freq_sdf, 1000)
 
-# Split between morning and evening commutes
+# Split between morning and evening commutes on weekdays
   
-path_dir_freq_am_sdf <- weekday_bike_trips_sdf %>%
+path_dir_freq_wkdy_am_sdf <- weekday_bike_trips_sdf %>%
   where(hour(column('starttime')) == 8 | hour(column('starttime')) == 9) %>%
   groupBy('start_station_name',
           'start_station_latitude',
@@ -213,9 +214,9 @@ path_dir_freq_am_sdf <- weekday_bike_trips_sdf %>%
   count() %>%
   orderBy(column('count') %>% desc())
 
-path_dir_freq_am_df <- take(path_dir_freq_am_sdf, 1000)
+path_dir_freq_wkdy_am_df <- take(path_dir_freq_wkdy_am_sdf, 1000)
 
-path_dir_freq_pm_sdf <- weekday_bike_trips_sdf %>%
+path_dir_freq_wkdy_pm_sdf <- weekday_bike_trips_sdf %>%
   where(hour(column('starttime')) == 17 | hour(column('starttime')) == 18) %>%
   groupBy('start_station_name',
           'start_station_latitude',
@@ -226,4 +227,17 @@ path_dir_freq_pm_sdf <- weekday_bike_trips_sdf %>%
   count() %>%
   orderBy(column('count') %>% desc())
 
-path_dir_freq_pm_df <- take(path_dir_freq_pm_sdf, 1000)
+path_dir_freq_wkdy_pm_df <- take(path_dir_freq_wkdy_pm_sdf, 1000)
+
+# Weekend trips
+path_dir_freq_wknd_sdf <- weekend_bike_trips_sdf %>%
+  groupBy('start_station_name',
+          'start_station_latitude',
+          'start_station_longitude',
+          'end_station_name',
+          'end_station_latitude',
+          'end_station_longitude') %>%
+  count() %>%
+  orderBy(column('count') %>% desc())
+
+path_dir_freq_wknd_df <- take(path_dir_freq_wknd_sdf, 1000)
