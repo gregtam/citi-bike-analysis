@@ -77,6 +77,9 @@ most_common_station_df <- station_uses_sdf %>%
 weekday_bike_trips_sdf <- citi_bike_trips_sdf %>%
   withColumn('start_dayofweek', date_format(column('starttime'), 'E')) %>%
   withColumn('stop_dayofweek', date_format(column('stoptime'), 'E')) %>%
+  withColumn('trip_length_sec',
+             (unix_timestamp(column('stoptime')) - unix_timestamp(column('starttime')))) %>%
+  where(column('trip_length_sec') <= 60*60*24) %>%
   where(column('start_dayofweek') != 'Sat') %>%
   where(column('start_dayofweek') != 'Sun') %>%
   where(column('stop_dayofweek') != 'Sat') %>%
@@ -85,9 +88,12 @@ weekday_bike_trips_sdf <- citi_bike_trips_sdf %>%
 weekend_bike_trips_sdf <- citi_bike_trips_sdf %>%
   withColumn('start_dayofweek', date_format(column('starttime'), 'E')) %>%
   withColumn('stop_dayofweek', date_format(column('stoptime'), 'E')) %>%
+  withColumn('trip_length_sec',
+             (unix_timestamp(column('stoptime')) - unix_timestamp(column('starttime')))) %>%
+  where(column('trip_length_sec') <= 60*60*24) %>%
   where((column('start_dayofweek') == 'Sat')
-        | (column('start_dayofweek') == 'Sun')
-        | (column('stop_dayofweek') == 'Sat')
+        | (column('start_dayofweek') == 'Sun')) %>%
+  where((column('stop_dayofweek') == 'Sat')
         | (column('stop_dayofweek') == 'Sun'))
 
 ################
