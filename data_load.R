@@ -1,4 +1,7 @@
+# Load Libraries
+library(magrittr)
 library(SparkR)
+
 sc <- sparkR.session(master = 'yarn',
                      sparkConfig = list(spark.driver.memory='8g',
                                         spark.executor.memory='8g'))
@@ -39,9 +42,18 @@ table_name_list <- c('2013-07 - Citi Bike trip data.csv',
                      '201604-citibike-tripdata.csv',
                      '201605-citibike-tripdata.csv')
                      
-                     
+#####################
+# Load Data from S3 #
+#####################
+# Here, we load our data from S3 into Spark as Spark DataFrames. The timestamps
+# associated with the csv files are not all in the same format. We must account
+# for this so that we can union all of the tables together into one master table
+# and have the proper timestamps.
+
+# A list of the Citi Bike Spark DataFrames from S3
 source_sdf_list <- list()
-date_edit_sdf_list <- list()
+# A list of the Citi Bike DataFrames with timestamps properly formatted
+timestamp_edit_sdf_list <- list()
 for (i in 1:length(table_name_list)) {
   # Load DataFrame from CSV file in S3
   source_sdf_list[[i]] <- read.df(paste0('s3://gt-citi-bike/',
@@ -63,29 +75,32 @@ for (i in 1:length(table_name_list)) {
   } else {
     print('This statement should not be reached.')
   }
-  date_edit_sdf_list[[i]] <- source_sdf_list[[i]] %>%
+  timestamp_edit_sdf_list[[i]] <- source_sdf_list[[i]] %>%
     withColumn('starttime_unix',
                unix_timestamp(column('starttime'), date_format_str)) %>%
     withColumn('stoptime_unix',
                unix_timestamp(column('stoptime'), date_format_str)) %>%
     withColumn('starttime_correct',
-               from_unixtime(column('starttime_unix'), 'yyyy-MM-dd HH:mm:ss') %>%
+               from_unixtime(column('starttime_unix'),
+                             'yyyy-MM-dd HH:mm:ss') %>%
                  cast('timestamp')) %>%
     withColumn('stoptime_correct',
-               from_unixtime(column('stoptime_unix'), 'yyyy-MM-dd HH:mm:ss') %>%
+               from_unixtime(column('stoptime_unix'),
+                             'yyyy-MM-dd HH:mm:ss') %>%
                  cast('timestamp'))
   
   # Replace column names that have spaces with underscores
-  date_edit_sdf_list[[i]] <- date_edit_sdf_list[[i]] %>%
-    select(lapply(columns(date_edit_sdf_list[[i]]),
+  timestamp_edit_sdf_list[[i]] <- timestamp_edit_sdf_list[[i]] %>%
+    select(lapply(columns(timestamp_edit_sdf_list[[i]]),
                   function(x) column(x) %>% alias(gsub(' ', '_', x))
                   ))
 }
 
+# Union all of the timestamp edited tables together to form our master table
 for (i in 1:length(source_sdf_list)) {
   # Replace original start and stop times with the corrected ones and drop
   # intermediate columns
-  temp_sdf <- date_edit_sdf_list[[i]] %>%
+  temp_sdf <- timestamp_edit_sdf_list[[i]] %>%
     withColumn('starttime', column('starttime_correct')) %>%
     withColumn('stoptime', column('stoptime_correct')) %>%
     withColumn('start_station_latitude',
@@ -105,6 +120,6 @@ for (i in 1:length(source_sdf_list)) {
   }
 }
 
+# Save the table to Hive
 sql('DROP TABLE IF EXISTS citi_bike_trips')
 saveAsTable(citi_bike_trips_sdf, 'citi_bike_trips')
-citi_bike_trips_sdf <- tableToDF('citi_bike_trips')

@@ -1,3 +1,4 @@
+# Load Libraries
 library(ggmap)
 library(magrittr)
 library(mapproj)
@@ -34,22 +35,26 @@ most_common_station_df <- project_coordinates(most_common_station_df,
                                               'station_latitude',
                                               'station_longitude')
 
-path_coord_freq_df <- path_coord_freq_df %>%
+path_coord_freq_proj_df <- path_coord_freq_df %>%
   project_coordinates('lat_1', 'lon_1') %>%
   project_coordinates('lat_2', 'lon_2')
 
-path_dir_freq_df <- path_dir_freq_df %>% 
+path_dir_freq_proj_df <- path_dir_freq_df %>%
   project_coordinates('start_station_latitude', 'start_station_longitude') %>%
   project_coordinates('end_station_latitude', 'end_station_longitude')
 
-path_dir_freq_am_df <- path_dir_freq_am_df %>%
+path_dir_freq_am_proj_df <- path_dir_freq_am_df %>%
   project_coordinates('start_station_latitude', 'start_station_longitude') %>%
   project_coordinates('end_station_latitude', 'end_station_longitude')
 
-path_dir_freq_pm_df <- path_dir_freq_pm_df %>%
+path_dir_freq_pm_proj_df <- path_dir_freq_pm_df %>%
   project_coordinates('start_station_latitude', 'start_station_longitude') %>%
   project_coordinates('end_station_latitude', 'end_station_longitude')
 
+path_dir_freq_wknd_proj_df <- path_dir_freq_wknd_df %>%
+  project_coordinates('start_station_latitude', 'start_station_longitude') %>%
+  project_coordinates('end_station_latitude', 'end_station_longitude')
+  
 nyc_map_plot <- ggplot() +
   geom_polygon(data = counties, aes(x = long, y = lat, group = group))
 
@@ -219,6 +224,7 @@ plot_paths <- function(df, title_str, max_limit = NA, n = 100) {
                       limits = c(1, max_limit))
   }
   
+  # For each distinct trip
   for (i in 1:n) {
     if (df[i, 'start_station_name'] == df[i, 'end_station_name']) {
       # If the start and end point are the same, then plot a point.
@@ -264,7 +270,7 @@ plot_paths <- function(df, title_str, max_limit = NA, n = 100) {
 }
 
 png(filename = 'plots/citi_bike_paths_dir.png', width = 700, height = 700)
-plot_paths(path_dir_freq_df,
+plot_paths(path_dir_freq_proj_df,
            title_str = 'Bike Path Directions (Start: White, End: Red)')
 dev.off()
 
@@ -276,15 +282,19 @@ max_count <- max(path_dir_freq_am_df$count, path_dir_freq_pm_df$count)
 max_limit <- ceiling(max_count/500) * 500
 
 png(filename = 'plots/citi_bike_paths_dir_am.png', width = 700, height = 700)
-plot_paths(path_dir_freq_am_df,
+plot_paths(path_dir_freq_am_proj_df,
            title_str = 'Bike Path Directions - AM (Start: White, End: Red)',
            max_limit = max_limit,
            n = 150)
 dev.off()
 
 png(filename = 'plots/citi_bike_paths_dir_pm.png', width = 700, height = 700)
-plot_paths(path_dir_freq_pm_df,
+plot_paths(path_dir_freq_pm_proj_df,
            title_str = 'Bike Path Directions - PM (Start: White, End: Red)',
            max_limit = max_limit,
            n = 150)
 dev.off()
+
+plot_paths(path_dir_freq_wknd_proj_df,
+           title_str = 'Bike Path Directions - Weekend (Start: White, End: Red)',
+           n = 150)
