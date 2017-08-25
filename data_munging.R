@@ -74,6 +74,7 @@ most_common_station_df <- station_uses_sdf %>%
 # Separate by Weekday/Weekend #
 ###############################
 
+# Trips that are less than 24 hours and start and end on a weekday
 weekday_bike_trips_sdf <- citi_bike_trips_sdf %>%
   withColumn('start_dayofweek', date_format(column('starttime'), 'E')) %>%
   withColumn('stop_dayofweek', date_format(column('stoptime'), 'E')) %>%
@@ -85,6 +86,7 @@ weekday_bike_trips_sdf <- citi_bike_trips_sdf %>%
   where(column('stop_dayofweek') != 'Sat') %>%
   where(column('stop_dayofweek') != 'Sun')
 
+# Trips that are less than 24 hours and start and end on a Saturday or Sunday
 weekend_bike_trips_sdf <- citi_bike_trips_sdf %>%
   withColumn('start_dayofweek', date_format(column('starttime'), 'E')) %>%
   withColumn('stop_dayofweek', date_format(column('stoptime'), 'E')) %>%
