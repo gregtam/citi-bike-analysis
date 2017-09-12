@@ -29,6 +29,7 @@ ggplot() +
   geom_vline(xintercept = 8.5, size = 1, linetype = 2) +
   geom_vline(xintercept = 17.5, size = 1, linetype = 2) +
   scale_fill_manual(values = c('royalblue', 'orangered3')) +
+  scale_y_continuous(labels = comma) +
   hist_theme +
   labs(title = 'Hourly Usage For Weekdays', x = 'Hour of Day', y = 'Frequency')
 dev.off()
@@ -49,6 +50,7 @@ ggplot() +
            stat = 'identity',
            width = 0.4) +
   scale_fill_manual(values = c('royalblue', 'orangered3')) +
+  scale_y_continuous(labels = comma) +
   hist_theme +
   labs(title = 'Hourly Usage for Weekends', x = 'Hour of Day', y = 'Frequency')
 dev.off()

@@ -40,8 +40,22 @@ table_name_list <- c('2013-07 - Citi Bike trip data.csv',
                      '201602-citibike-tripdata.csv',
                      '201603-citibike-tripdata.csv',
                      '201604-citibike-tripdata.csv',
-                     '201605-citibike-tripdata.csv')
-                     
+                     '201605-citibike-tripdata.csv',
+                     '201606-citibike-tripdata.csv',
+                     '201607-citibike-tripdata.csv',
+                     '201608-citibike-tripdata.csv',
+                     '201609-citibike-tripdata.csv',
+                     '201610-citibike-tripdata.csv',
+                     '201611-citibike-tripdata.csv',
+                     '201612-citibike-tripdata.csv',
+                     '201701-citibike-tripdata.csv',
+                     '201702-citibike-tripdata.csv',
+                     '201703-citibike-tripdata.csv',
+                     '201704-citibike-tripdata.csv',
+                     '201705-citibike-tripdata.csv',
+                     '201706-citibike-tripdata.csv',
+                     '201707-citibike-tripdata.csv')
+
 #####################
 # Load Data from S3 #
 #####################
@@ -59,13 +73,13 @@ for (i in 1:length(table_name_list)) {
   source_sdf_list[[i]] <- read.df(paste0('s3://gt-citi-bike/',
                                          table_name_list[i]),
                                   source = 'csv',
-                                  header = 'true'
-                                 )
+                                  header = 'true')
+  
   if (i %in% 1:14) {
     # Date is in yyyy-MM-dd HH:mm:ss format
     date_format_str <- 'yyyy-MM-dd HH:mm:ss'
-      
-  } else if (i %in% c(15:18, 22:23, 25:35)) {
+    
+  } else if (i %in% c(15:18, 22:23, 25:length(table_name_list))) {
     # Date is in MM/dd/yyyy HH:mm:ss format
     date_format_str <- 'MM/dd/yyyy HH:mm:ss'
     
@@ -75,25 +89,44 @@ for (i in 1:length(table_name_list)) {
   } else {
     print('This statement should not be reached.')
   }
-  timestamp_edit_sdf_list[[i]] <- source_sdf_list[[i]] %>%
-    withColumn('starttime_unix',
-               unix_timestamp(column('starttime'), date_format_str)) %>%
-    withColumn('stoptime_unix',
-               unix_timestamp(column('stoptime'), date_format_str)) %>%
-    withColumn('starttime_correct',
-               from_unixtime(column('starttime_unix'),
-                             'yyyy-MM-dd HH:mm:ss') %>%
-                 cast('timestamp')) %>%
-    withColumn('stoptime_correct',
-               from_unixtime(column('stoptime_unix'),
-                             'yyyy-MM-dd HH:mm:ss') %>%
-                 cast('timestamp'))
   
-  # Replace column names that have spaces with underscores
-  timestamp_edit_sdf_list[[i]] <- timestamp_edit_sdf_list[[i]] %>%
-    select(lapply(columns(timestamp_edit_sdf_list[[i]]),
-                  function(x) column(x) %>% alias(gsub(' ', '_', x))
-                  ))
+  # Replace column names that have spaces with underscores and set to lower case
+  timestamp_edit_sdf_list[[i]] <- source_sdf_list[[i]] %>%
+    select(lapply(columns(source_sdf_list[[i]]),
+                  function(x) column(x) %>% alias(tolower(gsub(' ', '_', x)))))
+  
+  
+  if (i < 40 | (i >= 46 & i <= 49)) {
+    timestamp_edit_sdf_list[[i]] <- timestamp_edit_sdf_list[[i]] %>%
+      withColumn('starttime_unix',
+                 unix_timestamp(column('starttime'), date_format_str)) %>%
+      withColumn('stoptime_unix',
+                 unix_timestamp(column('stoptime'), date_format_str)) %>%
+      withColumn('starttime_correct',
+                 from_unixtime(column('starttime_unix'),
+                               'yyyy-MM-dd HH:mm:ss') %>%
+                   cast('timestamp')) %>%
+      withColumn('stoptime_correct',
+                 from_unixtime(column('stoptime_unix'),
+                               'yyyy-MM-dd HH:mm:ss') %>%
+                   cast('timestamp'))
+  } else if (i >= 40 & i <= 45) {
+    timestamp_edit_sdf_list[[i]] <- timestamp_edit_sdf_list[[i]] %>%
+      withColumn('starttime_unix',
+                 unix_timestamp(column('start_time'), date_format_str)) %>%
+      withColumn('stoptime_unix',
+                 unix_timestamp(column('stop_time'), date_format_str)) %>%
+      withColumn('starttime_correct',
+                 from_unixtime(column('starttime_unix'),
+                               'yyyy-MM-dd HH:mm:ss') %>%
+                   cast('timestamp')) %>%
+      withColumn('stoptime_correct',
+                 from_unixtime(column('stoptime_unix'),
+                               'yyyy-MM-dd HH:mm:ss') %>%
+                   cast('timestamp'))
+  } else {
+    # print(paste('This statement should not be reached. i =', i))
+  }
 }
 
 # Union all of the timestamp edited tables together to form our master table
@@ -112,7 +145,9 @@ for (i in 1:length(source_sdf_list)) {
     withColumn('end_station_longitude',
                column('end_station_longitude') %>% cast('double')) %>%
     drop(c('starttime_unix', 'stoptime_unix',
-           'starttime_correct', 'stoptime_correct'))
+           'starttime_correct', 'stoptime_correct',
+           'start_time', 'stop_time'))
+  
   if (i == 1) {
     citi_bike_trips_sdf <- temp_sdf
   } else {
