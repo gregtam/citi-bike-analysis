@@ -70,87 +70,72 @@ most_common_station_df <- station_uses_sdf %>%
   count() %>%
   collect()
 
+###############################
+# Separate by Weekday/Weekend #
+###############################
+
+# Trips that are less than 24 hours and start and end on a weekday
+weekday_bike_trips_sdf <- citi_bike_trips_sdf %>%
+  withColumn('start_dayofweek', date_format(column('starttime'), 'E')) %>%
+  withColumn('stop_dayofweek', date_format(column('stoptime'), 'E')) %>%
+  withColumn('trip_length_sec',
+             (unix_timestamp(column('stoptime')) - unix_timestamp(column('starttime')))) %>%
+  where(column('trip_length_sec') <= 60*60*24) %>%
+  where(column('start_dayofweek') != 'Sat') %>%
+  where(column('start_dayofweek') != 'Sun') %>%
+  where(column('stop_dayofweek') != 'Sat') %>%
+  where(column('stop_dayofweek') != 'Sun')
+
+# Trips that are less than 24 hours and start and end on a Saturday or Sunday
+weekend_bike_trips_sdf <- citi_bike_trips_sdf %>%
+  withColumn('start_dayofweek', date_format(column('starttime'), 'E')) %>%
+  withColumn('stop_dayofweek', date_format(column('stoptime'), 'E')) %>%
+  withColumn('trip_length_sec',
+             (unix_timestamp(column('stoptime')) - unix_timestamp(column('starttime')))) %>%
+  where(column('trip_length_sec') <= 60*60*24) %>%
+  where((column('start_dayofweek') == 'Sat')
+        | (column('start_dayofweek') == 'Sun')) %>%
+  where((column('stop_dayofweek') == 'Sat')
+        | (column('stop_dayofweek') == 'Sun'))
+
 ################
-# Hourly usage #
+# Hourly Usage #
 ################
 
-# Get hourly counts
-start_hour_group_df <- citi_bike_trips_sdf %>%
+# Get hourly counts for weekday trips
+start_hour_weekday_group_df <- weekday_bike_trips_sdf %>%
   select(hour(column('starttime')) %>% alias('start_hour')) %>%
   groupBy('start_hour') %>%
   count() %>%
   orderBy('start_hour') %>%
   collect()
 
-end_hour_group_df <- citi_bike_trips_sdf %>%
+end_hour_weekday_group_df <- weekday_bike_trips_sdf %>%
   select(hour(column('stoptime')) %>% alias('stop_hour')) %>%
   groupBy('stop_hour') %>%
   count() %>%
   orderBy('stop_hour') %>%
   collect()
 
-###################
-# Plot Histograms #
-###################
-
-# Set theme of plot
-hist_theme <- theme(plot.title = element_text(size = 22, hjust = 0.5),
-                    axis.title.x = element_text(size = 18),
-                    axis.title.y = element_text(size = 18),
-                    axis.text.x = element_text(size = 12),
-                    axis.text.y = element_text(size = 12),
-                    legend.title = element_blank(),
-                    legend.text = element_text(size = 12))
-
-# Plot hourly usage
-png(filename = 'plots/hourly_usage.png', width = 700, height = 400)
-ggplot() +
-  geom_bar(data = start_hour_group_df,
-           aes(x = start_hour - 0.2,
-               y = count,
-               fill = 'Start'),
-           stat = 'identity',
-           width = 0.4) +
-  geom_bar(data = end_hour_group_df,
-           aes(x = stop_hour + 0.2,
-               y = count,
-               fill = 'Stop'),
-           stat = 'identity',
-           width = 0.4) +
-  geom_vline(xintercept = 8.5, size = 1, linetype = 2) +
-  geom_vline(xintercept = 17.5, size = 1, linetype = 2) +
-  scale_fill_manual(values = c('royalblue', 'orangered3')) +
-  hist_theme +
-  labs(title = 'Hourly Usage', x = 'Hour of Day', y = 'Frequency')
-dev.off()
-
-# Look at day of the week
-weekday_count_df <- citi_bike_trips_sdf %>%
-  select(date_format(column('starttime'), 'E') %>% 
-           alias('day_of_week')) %>%
-  select('day_of_week') %>%
-  groupBy('day_of_week') %>%
+# Get hourly counts for weekend trips
+start_hour_weekend_group_df <- weekend_bike_trips_sdf %>%
+  select(hour(column('starttime')) %>% alias('start_hour')) %>%
+  groupBy('start_hour') %>%
   count() %>%
-  orderBy('day_of_week') %>%
+  orderBy('start_hour') %>%
   collect()
 
-# Create a mapping from day of week to number
-weekday_vec <- 1:7
-names(weekday_vec) <- c('Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat')
-
-weekday_count_df$ordinal_number <- weekday_vec[weekday_count_df$day_of_week]
-
-# Sort by day of week
-weekday_count_df <- weekday_count_df %>%
-  dplyr::arrange(ordinal_number)
-
-ggplot(weekday_count_df, aes(x = day_of_week, y = count)) +
-  geom_bar(stat = 'identity') +
-  labs(x = 'Day of Week', y = 'Frequency')
+end_hour_weekend_group_df <- weekend_bike_trips_sdf %>%
+  select(hour(column('stoptime')) %>% alias('stop_hour')) %>%
+  groupBy('stop_hour') %>%
+  count() %>%
+  orderBy('stop_hour') %>%
+  collect()
     
-##################
-# Group by paths #
-##################
+#####################
+# Most Common Paths #
+#####################
+
 # Here, we take a look at the most common paths irrespective of direction. We
 # can do this by sorting the two station names alphabetically, then 
 # concatenating the two together.
@@ -208,9 +193,9 @@ path_coord_freq_sdf <- path_freq_sdf %>%
 
 path_coord_freq_df <- take(path_coord_freq_sdf, 1000)
 
-###############################
-# Most Common Path Directions #
-###############################
+#####################################
+# Most Common Path (With Direction) #
+#####################################
 
 path_dir_freq_sdf <- citi_bike_trips_sdf %>%
   groupBy('start_station_name',
@@ -224,16 +209,9 @@ path_dir_freq_sdf <- citi_bike_trips_sdf %>%
 
 path_dir_freq_df <- take(path_dir_freq_sdf, 1000)
 
-# Split between morning and evening commutes
-weekday_bike_trips_sdf <- citi_bike_trips_sdf %>%
-  withColumn('start_dayofweek', date_format(column('starttime'), 'E')) %>%
-  withColumn('stop_dayofweek', date_format(column('stoptime'), 'E')) %>%
-  where(column('start_dayofweek') != 'Sat') %>%
-  where(column('start_dayofweek') != 'Sun') %>%
-  where(column('stop_dayofweek') != 'Sat') %>%
-  where(column('stop_dayofweek') != 'Sun')
+# Split between morning and evening commutes on weekdays
   
-path_dir_freq_am_sdf <- weekday_bike_trips_sdf %>%
+path_dir_freq_wkdy_am_sdf <- weekday_bike_trips_sdf %>%
   where(hour(column('starttime')) == 8 | hour(column('starttime')) == 9) %>%
   groupBy('start_station_name',
           'start_station_latitude',
@@ -244,9 +222,9 @@ path_dir_freq_am_sdf <- weekday_bike_trips_sdf %>%
   count() %>%
   orderBy(column('count') %>% desc())
 
-path_dir_freq_am_df <- take(path_dir_freq_am_sdf, 1000)
+path_dir_freq_wkdy_am_df <- take(path_dir_freq_wkdy_am_sdf, 1000)
 
-path_dir_freq_pm_sdf <- weekday_bike_trips_sdf %>%
+path_dir_freq_wkdy_pm_sdf <- weekday_bike_trips_sdf %>%
   where(hour(column('starttime')) == 17 | hour(column('starttime')) == 18) %>%
   groupBy('start_station_name',
           'start_station_latitude',
@@ -257,4 +235,17 @@ path_dir_freq_pm_sdf <- weekday_bike_trips_sdf %>%
   count() %>%
   orderBy(column('count') %>% desc())
 
-path_dir_freq_pm_df <- take(path_dir_freq_pm_sdf, 1000)
+path_dir_freq_wkdy_pm_df <- take(path_dir_freq_wkdy_pm_sdf, 1000)
+
+# Weekend trips
+path_dir_freq_wknd_sdf <- weekend_bike_trips_sdf %>%
+  groupBy('start_station_name',
+          'start_station_latitude',
+          'start_station_longitude',
+          'end_station_name',
+          'end_station_latitude',
+          'end_station_longitude') %>%
+  count() %>%
+  orderBy(column('count') %>% desc())
+
+path_dir_freq_wknd_df <- take(path_dir_freq_wknd_sdf, 1000)

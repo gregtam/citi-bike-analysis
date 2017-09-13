@@ -24,16 +24,16 @@ project_coordinates <- function(input_df, lat, long)
   return(input_df)
 }
 
-start_df <- project_coordinates(start_df,
-                                'start_station_latitude',
-                                'start_station_longitude')
-end_df <- project_coordinates(end_df,
-                              'end_station_latitude',
-                              'end_station_longitude')
+start_proj_df <- project_coordinates(start_df,
+                                     'start_station_latitude',
+                                     'start_station_longitude')
+end_proj_df <- project_coordinates(end_df,
+                                   'end_station_latitude',
+                                   'end_station_longitude')
 
-most_common_station_df <- project_coordinates(most_common_station_df,
-                                              'station_latitude',
-                                              'station_longitude')
+most_common_station_proj_df <- project_coordinates(most_common_station_df,
+                                                   'station_latitude',
+                                                   'station_longitude')
 
 path_coord_freq_proj_df <- path_coord_freq_df %>%
   project_coordinates('lat_1', 'lon_1') %>%
@@ -43,11 +43,11 @@ path_dir_freq_proj_df <- path_dir_freq_df %>%
   project_coordinates('start_station_latitude', 'start_station_longitude') %>%
   project_coordinates('end_station_latitude', 'end_station_longitude')
 
-path_dir_freq_am_proj_df <- path_dir_freq_am_df %>%
+path_dir_freq_wkdy_am_proj_df <- path_dir_freq_wkdy_am_df %>%
   project_coordinates('start_station_latitude', 'start_station_longitude') %>%
   project_coordinates('end_station_latitude', 'end_station_longitude')
 
-path_dir_freq_pm_proj_df <- path_dir_freq_pm_df %>%
+path_dir_freq_wkdy_pm_proj_df <- path_dir_freq_wkdy_pm_df %>%
   project_coordinates('start_station_latitude', 'start_station_longitude') %>%
   project_coordinates('end_station_latitude', 'end_station_longitude')
 
@@ -69,11 +69,14 @@ fill_ocean <- theme(panel.background = element_rect(fill = 'dodgerblue3',
                     panel.grid.minor = element_blank(),
                     panel.border = element_blank())
 
-title_format <- theme(plot.title = element_text(size = 26, hjust = 0.5),
-                      axis.title.x = element_text(size = 22),
-                      axis.title.y = element_text(size = 22),
+title_format <- theme(plot.title = element_text(size = 22, hjust = 0.5),
+                      axis.title.x = element_text(size = 20),
+                      axis.title.y = element_text(size = 20),
                       legend.title = element_text(size = 18),
                       legend.text = element_text(size = 12))
+
+remove_axis_labels <- theme(axis.title.x = element_blank(),
+                            axis.title.y = element_blank())
 
 plot_window <- coord_fixed(ratio = 1,
                            xlim = c(975000, 1025000),
@@ -85,7 +88,7 @@ plot_window <- coord_fixed(ratio = 1,
 png(filename = 'plots/start_points.png', width = 700, height = 700)
 
 nyc_map_plot +
-  geom_point(data = start_df,
+  geom_point(data = start_proj_df,
              aes(x = start_station_longitude,
                  y = start_station_latitude,
                  size = count),
@@ -94,11 +97,12 @@ nyc_map_plot +
              fill = 'white',
              stroke = 0.2) +
   title_format + 
+  remove_axis_labels +
   plot_window +
   blank_axes +
   fill_ocean +
   scale_size_area(name = 'Frequency', max_size = 4, labels = comma) +
-  labs(title = 'Start Points', x = 'Longitude', y = 'Latitude')
+  labs(title = 'Start Points')
 
 dev.off()
   
@@ -108,7 +112,7 @@ dev.off()
 png(filename = 'plots/end_points.png', width = 700, height = 700)
 
 nyc_map_plot +
-  geom_point(data = end_df,
+  geom_point(data = end_proj_df,
              aes(x = end_station_longitude,
                  y = end_station_latitude,
                  size = count),
@@ -116,12 +120,13 @@ nyc_map_plot +
              colour = 'black',
              fill = 'white',
              stroke = 0.2) +
-  title_format +
+  title_format + 
+  remove_axis_labels +
   plot_window +
   blank_axes +
   fill_ocean +
   scale_size_area(name = 'Frequency', max_size = 4, labels = comma) +
-  labs(title = 'End Points', x = 'Longitude', y = 'Latitude')
+  labs(title = 'End Points')
 
 dev.off()
 
@@ -131,7 +136,7 @@ dev.off()
 png(filename = 'plots/station_uses.png', width = 700, height = 700)
 
 nyc_map_plot +
-  geom_point(data = most_common_station_df,
+  geom_point(data = most_common_station_proj_df,
              aes(x = station_longitude,
                  y = station_latitude,
                  size = count),
@@ -139,12 +144,13 @@ nyc_map_plot +
              colour = 'black',
              fill = 'white',
              stroke = 0.2) +
-  title_format +
+  title_format + 
+  remove_axis_labels +
   plot_window +
   blank_axes +
   fill_ocean +
   scale_size_area(name = 'Frequency', max_size = 4, labels = comma) +
-  labs(title = 'Station Uses', x = 'Longitude', y = 'Latitude')
+  labs(title = 'Station Uses')
 
 dev.off()
 
@@ -156,21 +162,22 @@ dev.off()
 png(filename = 'plots/citi_bike_paths.png', width = 700, height = 700)
 
 path_plot <- nyc_map_plot +
-  title_format + 
+  title_format +
+  remove_axis_labels +
   plot_window +
   blank_axes +
   fill_ocean + 
   scale_size_area(name = 'Frequency', max_size = 6, labels = comma) + 
-  labs(title = 'Bike Paths', x = 'Longitude', y = 'Latitude')
+  labs(title = 'Bike Paths')
 
 for (i in 1:100) {
   # Create a temporary data frame which includes the start and end latitude and
   # longitude coordinates for a given path.
-  if (path_coord_freq_df[i, 'station_1'] == path_coord_freq_df[i, 'station_2']) {
+  if (path_coord_freq_proj_df[i, 'station_1'] == path_coord_freq_proj_df[i, 'station_2']) {
     # If start and end point are the same, do a geom_point
-    temp_df <- data.frame(latitude = path_coord_freq_df[i, 'lat_1'],
-                          longitude = path_coord_freq_df[i, 'lon_1'],
-                          count = path_coord_freq_df[i, 'count'])
+    temp_df <- data.frame(latitude = path_coord_freq_proj_df[i, 'lat_1'],
+                          longitude = path_coord_freq_proj_df[i, 'lon_1'],
+                          count = path_coord_freq_proj_df[i, 'count'])
     
     path_plot <- path_plot + geom_point(data = temp_df,
                                         aes(x = longitude,
@@ -179,11 +186,11 @@ for (i in 1:100) {
                                         colour = 'white', alpha = 0.25)
   } else {
     # Otherwise, connect the two points by a line
-    temp_df <- data.frame(latitude = c(path_coord_freq_df[i, 'lat_1'],
-                                       path_coord_freq_df[i, 'lat_2']),
-                          longitude = c(path_coord_freq_df[i, 'lon_1'],
-                                        path_coord_freq_df[i, 'lon_2']),
-                          count = path_coord_freq_df[i, 'count'])
+    temp_df <- data.frame(latitude = c(path_coord_freq_proj_df[i, 'lat_1'],
+                                       path_coord_freq_proj_df[i, 'lat_2']),
+                          longitude = c(path_coord_freq_proj_df[i, 'lon_1'],
+                                        path_coord_freq_proj_df[i, 'lon_2']),
+                          count = path_coord_freq_proj_df[i, 'count'])
     
     path_plot <- path_plot + geom_line(data = temp_df,
                                        aes(x = longitude,
@@ -203,24 +210,35 @@ dev.off()
 # Here, we wish to show a similar plot as above, but instead show the path
 # directionality. We do this by making each end of the path a different colour.
 
-plot_paths <- function(df, title_str, max_limit = NA, n = 100) {
+plot_paths <- function(df, title_str, n = 100, max_limit = NA, max_size = 6) {
+  # Plots Citi Bike paths on the New York City map.
+  #
+  # Inputs:
+  #   df: a DataFrame of the paths. It should have projected coordinate
+  #       and counts
+  #   title_str: A string representing the title of the plot
+  #   n: The n most frequent paths will be plotted. (Default: 100)
+  #   max_limit: The maximum scale size. If NA, then limits will not be 
+  #              specified (Default: NA)
+  #   max_size: The maximum size of the plotted lines. (Default: 6)
+  
   plot_object <- nyc_map_plot +
+    title_format +
+    remove_axis_labels +
     plot_window +
     blank_axes +
     fill_ocean + 
     scale_colour_gradient(low = 'white', high = 'red') +
-    title_format +
-    labs(title = title_str,
-         x = 'Longitude', y = 'Latitude') +
+    labs(title = title_str) +
     guides(colour = F)
   
   # If max limit is specified, then set limits
   if (is.na(max_limit)) {
     plot_object <- plot_object +
-      scale_size_area(name = 'Frequency', max_size = 6, labels = comma)
+      scale_size_area(name = 'Frequency', max_size = max_size, labels = comma)
   } else {
     plot_object <- plot_object +
-      scale_size_area(name = 'Frequency', max_size = 6, labels = comma,
+      scale_size_area(name = 'Frequency', max_size = max_size, labels = comma,
                       limits = c(1, max_limit))
   }
   
@@ -271,30 +289,36 @@ plot_paths <- function(df, title_str, max_limit = NA, n = 100) {
 
 png(filename = 'plots/citi_bike_paths_dir.png', width = 700, height = 700)
 plot_paths(path_dir_freq_proj_df,
-           title_str = 'Bike Path Directions (Start: White, End: Red)')
+           title_str = 'Bike Path Directions (Start: White, End: Red)',
+           n = 150)
 dev.off()
 
-# We can AM and PM plots to be on the same scale. We will get the max count from
-# both tables.
-# Get the max count of AM and PM paths.
-max_count <- max(path_dir_freq_am_df$count, path_dir_freq_pm_df$count)
+# We want AM, PM, and weekend plots to be on the same scale. We will get the max
+# count from all three tables.
+# Get the max count of AM, PM, and weekend paths.
+max_count <- max(path_dir_freq_wkdy_am_proj_df$count,
+                 path_dir_freq_wkdy_pm_proj_df$count,
+                 path_dir_freq_wknd_proj_df$count)
 # Round up to the nearest multiple of 500.
 max_limit <- ceiling(max_count/500) * 500
 
-png(filename = 'plots/citi_bike_paths_dir_am.png', width = 700, height = 700)
-plot_paths(path_dir_freq_am_proj_df,
-           title_str = 'Bike Path Directions - AM (Start: White, End: Red)',
+png(filename = 'plots/citi_bike_paths_dir_wkdy_am.png', width = 700, height = 700)
+plot_paths(path_dir_freq_wkdy_am_proj_df,
+           title_str = 'Bike Paths - Weekday AM (Start: White, End: Red)',
            max_limit = max_limit,
            n = 150)
 dev.off()
 
-png(filename = 'plots/citi_bike_paths_dir_pm.png', width = 700, height = 700)
-plot_paths(path_dir_freq_pm_proj_df,
-           title_str = 'Bike Path Directions - PM (Start: White, End: Red)',
+png(filename = 'plots/citi_bike_paths_dir_wkdy_pm.png', width = 700, height = 700)
+plot_paths(path_dir_freq_wkdy_pm_proj_df,
+           title_str = 'Bike Paths - Weekday PM (Start: White, End: Red)',
            max_limit = max_limit,
            n = 150)
 dev.off()
 
+png(filename = 'plots/citi_bike_paths_dir_wknd.png', width = 700, height = 700)
 plot_paths(path_dir_freq_wknd_proj_df,
-           title_str = 'Bike Path Directions - Weekend (Start: White, End: Red)',
+           title_str = 'Bike Paths - Weekend (Start: White, End: Red)',
+           max_limit = max_limit,
            n = 150)
+dev.off()
