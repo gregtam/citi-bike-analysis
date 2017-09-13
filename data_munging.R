@@ -1,5 +1,4 @@
 # Load Libraries
-library(ggplot2)
 library(magrittr)
 library(SparkR)
 

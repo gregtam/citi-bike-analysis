@@ -1,5 +1,6 @@
 # Load Libraries
 library(ggmap)
+library(ggplot)
 library(magrittr)
 library(mapproj)
 library(rgdal)
@@ -19,8 +20,9 @@ project_coordinates <- function(input_df, lat, long)
   coordinates(input_df) <- as.formula(form)
   proj4string(input_df) <- CRS("+proj=longlat +datum=NAD83")
 
-  input_df <- spTransform(input_df, CRS(proj4string(counties))) %>% data.frame()
-  
+  input_df <- spTransform(input_df, CRS(proj4string(counties))) %>%
+    data.frame()
+
   return(input_df)
 }
 
@@ -54,7 +56,7 @@ path_dir_freq_wkdy_pm_proj_df <- path_dir_freq_wkdy_pm_df %>%
 path_dir_freq_wknd_proj_df <- path_dir_freq_wknd_df %>%
   project_coordinates('start_station_latitude', 'start_station_longitude') %>%
   project_coordinates('end_station_latitude', 'end_station_longitude')
-  
+
 nyc_map_plot <- ggplot() +
   geom_polygon(data = counties, aes(x = long, y = lat, group = group))
 
@@ -96,7 +98,7 @@ nyc_map_plot +
              colour = 'black',
              fill = 'white',
              stroke = 0.2) +
-  title_format + 
+  title_format +
   remove_axis_labels +
   plot_window +
   blank_axes +
@@ -105,7 +107,7 @@ nyc_map_plot +
   labs(title = 'Start Points')
 
 dev.off()
-  
+
 #######################
 # Plot the end points #
 #######################
@@ -120,7 +122,7 @@ nyc_map_plot +
              colour = 'black',
              fill = 'white',
              stroke = 0.2) +
-  title_format + 
+  title_format +
   remove_axis_labels +
   plot_window +
   blank_axes +
@@ -144,7 +146,7 @@ nyc_map_plot +
              colour = 'black',
              fill = 'white',
              stroke = 0.2) +
-  title_format + 
+  title_format +
   remove_axis_labels +
   plot_window +
   blank_axes +
@@ -166,8 +168,8 @@ path_plot <- nyc_map_plot +
   remove_axis_labels +
   plot_window +
   blank_axes +
-  fill_ocean + 
-  scale_size_area(name = 'Frequency', max_size = 6, labels = comma) + 
+  fill_ocean +
+  scale_size_area(name = 'Frequency', max_size = 6, labels = comma) +
   labs(title = 'Bike Paths')
 
 for (i in 1:100) {
@@ -178,7 +180,7 @@ for (i in 1:100) {
     temp_df <- data.frame(latitude = path_coord_freq_proj_df[i, 'lat_1'],
                           longitude = path_coord_freq_proj_df[i, 'lon_1'],
                           count = path_coord_freq_proj_df[i, 'count'])
-    
+
     path_plot <- path_plot + geom_point(data = temp_df,
                                         aes(x = longitude,
                                             y = latitude,
@@ -191,7 +193,7 @@ for (i in 1:100) {
                           longitude = c(path_coord_freq_proj_df[i, 'lon_1'],
                                         path_coord_freq_proj_df[i, 'lon_2']),
                           count = path_coord_freq_proj_df[i, 'count'])
-    
+
     path_plot <- path_plot + geom_line(data = temp_df,
                                        aes(x = longitude,
                                            y = latitude,
@@ -218,20 +220,20 @@ plot_paths <- function(df, title_str, n = 100, max_limit = NA, max_size = 6) {
   #       and counts
   #   title_str: A string representing the title of the plot
   #   n: The n most frequent paths will be plotted. (Default: 100)
-  #   max_limit: The maximum scale size. If NA, then limits will not be 
+  #   max_limit: The maximum scale size. If NA, then limits will not be
   #              specified (Default: NA)
   #   max_size: The maximum size of the plotted lines. (Default: 6)
-  
+
   plot_object <- nyc_map_plot +
     title_format +
     remove_axis_labels +
     plot_window +
     blank_axes +
-    fill_ocean + 
+    fill_ocean +
     scale_colour_gradient(low = 'white', high = 'red') +
     labs(title = title_str) +
     guides(colour = F)
-  
+
   # If max limit is specified, then set limits
   if (is.na(max_limit)) {
     plot_object <- plot_object +
@@ -241,7 +243,7 @@ plot_paths <- function(df, title_str, n = 100, max_limit = NA, max_size = 6) {
       scale_size_area(name = 'Frequency', max_size = max_size, labels = comma,
                       limits = c(1, max_limit))
   }
-  
+
   # For each distinct trip
   for (i in 1:n) {
     if (df[i, 'start_station_name'] == df[i, 'end_station_name']) {
@@ -249,7 +251,7 @@ plot_paths <- function(df, title_str, n = 100, max_limit = NA, max_size = 6) {
       temp_df <- data.frame(latitude = df[i, 'start_station_latitude'],
                             longitude = df[i, 'start_station_longitude'],
                             count = df[i, 'count'])
-      
+
       # Add point to ggplot object.
       plot_object <- plot_object +
         geom_point(data = temp_df,
@@ -258,7 +260,7 @@ plot_paths <- function(df, title_str, n = 100, max_limit = NA, max_size = 6) {
     } else {
       # If the start and end points are different, then draw a line between the
       # two to indicate the path
-      
+
       # Here, we interpolate points between the start and end point. This is
       # done so that we can have a colour gradient throughout the path.
       lat_interp <- seq(df[i, 'start_station_latitude'],
@@ -267,7 +269,7 @@ plot_paths <- function(df, title_str, n = 100, max_limit = NA, max_size = 6) {
       lon_interp <- seq(df[i, 'start_station_longitude'],
                         df[i, 'end_station_longitude'],
                         length.out = 100)
-      
+
       # Create a data frame with the interpolated values. Position is simply an
       # increasing array to determine the colour.
       temp_df <- data.frame(latitude = lat_interp,

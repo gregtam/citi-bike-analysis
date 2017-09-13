@@ -133,20 +133,37 @@ for (i in 1:length(table_name_list)) {
 for (i in 1:length(source_sdf_list)) {
   # Replace original start and stop times with the corrected ones and drop
   # intermediate columns
-  temp_sdf <- timestamp_edit_sdf_list[[i]] %>%
-    withColumn('starttime', column('starttime_correct')) %>%
-    withColumn('stoptime', column('stoptime_correct')) %>%
-    withColumn('start_station_latitude',
-               column('start_station_latitude') %>% cast('double')) %>%
-    withColumn('start_station_longitude',
-               column('start_station_longitude') %>% cast('double')) %>%
-    withColumn('end_station_latitude',
-               column('end_station_latitude') %>% cast('double')) %>%
-    withColumn('end_station_longitude',
-               column('end_station_longitude') %>% cast('double')) %>%
-    drop(c('starttime_unix', 'stoptime_unix',
-           'starttime_correct', 'stoptime_correct',
-           'start_time', 'stop_time'))
+  if (i < 40 | (i >= 46 & i <= 49)) {
+    temp_sdf <- timestamp_edit_sdf_list[[i]] %>%
+      withColumn('starttime', column('starttime_correct')) %>%
+      withColumn('stoptime', column('stoptime_correct')) %>%
+      withColumn('start_station_latitude',
+                 column('start_station_latitude') %>% cast('double')) %>%
+      withColumn('start_station_longitude',
+                 column('start_station_longitude') %>% cast('double')) %>%
+      withColumn('end_station_latitude',
+                 column('end_station_latitude') %>% cast('double')) %>%
+      withColumn('end_station_longitude',
+                 column('end_station_longitude') %>% cast('double')) %>%
+      drop(c('starttime_unix', 'stoptime_unix',
+             'starttime_correct', 'stoptime_correct'))
+  } else if (i >= 40 & i <= 45) {
+    temp_sdf <- timestamp_edit_sdf_list[[i]] %>%
+      withColumn('start_time', column('starttime_correct')) %>%
+      withColumn('stop_time', column('stoptime_correct')) %>%
+      withColumn('start_station_latitude',
+                 column('start_station_latitude') %>% cast('double')) %>%
+      withColumn('start_station_longitude',
+                 column('start_station_longitude') %>% cast('double')) %>%
+      withColumn('end_station_latitude',
+                 column('end_station_latitude') %>% cast('double')) %>%
+      withColumn('end_station_longitude',
+                 column('end_station_longitude') %>% cast('double')) %>%
+      drop(c('starttime_unix', 'stoptime_unix',
+             'starttime_correct', 'stoptime_correct')) %>%
+      withColumnRenamed('start_time', 'starttime') %>%
+      withColumnRenamed('stop_time', 'stopttime')
+  }
   
   if (i == 1) {
     citi_bike_trips_sdf <- temp_sdf
