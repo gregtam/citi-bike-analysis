@@ -1,3 +1,9 @@
+library(dplyr)
+library(ggplot2)
+library(magrittr)
+library(scales)
+library(SparkR)
+
 ###################
 # Plot Histograms #
 ###################
