@@ -1,6 +1,8 @@
 # citi-bike-analysis
 This repo will show how to analyze Citi Bike data using SparkR. The data is taken from https://www.citibikenyc.com/system-data.
 
+Check out the blog [here](https://content.pivotal.io/blog/using-sparkr-to-analyze-citi-bike-data)!
+
 The nybb_16d folder contains the maps data.
 
 ![Station Uses](/plots/station_uses.png)
