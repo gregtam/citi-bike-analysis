@@ -1,10 +1,8 @@
 # Load Libraries
-library(ggmap)
-library(ggplot)
+library(ggplot2)
 library(magrittr)
 library(mapproj)
 library(rgdal)
-library(rworldmap)
 library(scales)
 
 # Maps data taken from http://www1.nyc.gov/site/planning/data-maps/open-data/districts-download-metadata.page
